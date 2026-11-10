@@ -1,0 +1,52 @@
+/* Tokens duplicated on purpose, like supervisor.css: each page stands alone. */
+:root {
+  --ink: #14181B;
+  --ground: #EDF0EE;
+  --quiet: #3F4945;
+  --red: #D6261E;
+  --yellow: #F5B800;
+  --kanit: 'Kanit', 'Noto Sans Thai', sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html { scrollbar-color: var(--ink) var(--ground); }
+body {
+  margin: 0; min-height: 100vh; background: var(--ground); color: var(--ink);
+  font: 500 1rem/1.4 'Noto Sans Thai', system-ui, sans-serif; caret-color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+::selection { background: var(--yellow); color: var(--ink); }
+h1, p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 4px solid var(--ink); outline-offset: 3px; }
+
+/* three steps: title 2.25rem / brand 1.25rem / detail 1rem */
+.wrap {
+  max-width: 26rem; margin: 0 auto;
+  padding: max(2rem, env(safe-area-inset-top)) 1rem calc(2rem + env(safe-area-inset-bottom));
+}
+.brand { font: 700 1.25rem var(--kanit); }
+h1 { margin-top: 2rem; font: 700 2.25rem/1.1 var(--kanit); }
+.lead { margin-top: .5rem; color: var(--quiet); }
+
+form { margin-top: 1.75rem; padding: 1.25rem; background: #fff; border: 2px solid var(--ink); border-radius: 14px; }
+.field + .field { margin-top: 1rem; }
+label { display: block; margin-bottom: .375rem; font: 700 1rem var(--kanit); }
+input {
+  width: 100%; min-height: 3.5rem; padding: 0 1rem;
+  background: #fff; border: 2px solid var(--ink); border-radius: 12px;
+}
+form[data-err] input:focus { border-width: 4px; padding: 0 calc(1rem - 2px); }
+
+.err { min-height: 1.4em; margin-top: 1rem; color: var(--red); font-weight: 700; }
+.primary {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 3.5rem; margin-top: .5rem;
+  background: var(--ink); color: #fff; border: 0; border-radius: 12px; font: 700 1.25rem var(--kanit); cursor: pointer;
+}
+.primary:active { background: var(--quiet); }
+
+.note { margin-top: 1.25rem; color: var(--quiet); }
+.note b { color: var(--ink); font-family: var(--kanit); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

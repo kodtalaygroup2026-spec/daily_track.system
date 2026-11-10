@@ -8,6 +8,7 @@
 <link rel="preload" href="fonts/kanit-700-thai.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="styles.css">
+<script src="auth.js" data-role="tech"></script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -35,7 +36,7 @@
     </div>
     <div class="prog" id="prog" role="img"></div>
     <p class="count" id="count"></p>
-    <p class="hint" id="hint" hidden>แตะกล่องที่รอทำเพื่อเริ่มงาน</p>
+    <p class="hint" id="hint" hidden>แตะกล่องที่รอทำ ถ่ายรูปก่อนแล้วเริ่มงาน</p>
   </section>
 
   <ul class="list" id="list"></ul>
@@ -43,13 +44,13 @@
   <p class="note">
     <button type="button" id="reset">เริ่มตัวอย่างใหม่</button>
     <button type="button" id="empty">ดูวันที่ไม่มีงาน</button>
-    <a href="supervisor.html">ไปหน้าหัวหน้า</a>
+    <button type="button" id="logout">ออกจากระบบ</button>
   </p>
 </div>
 
 <input type="file" id="file" accept="image/*" capture="environment" hidden>
 
-<div class="toast" id="toast" role="status" aria-live="polite" hidden>
+<div class="toast" id="toast" role="status" aria-live="polite">
   <span id="toastText"></span>
   <button type="button" id="undo">เลิกทำ</button>
 </div>

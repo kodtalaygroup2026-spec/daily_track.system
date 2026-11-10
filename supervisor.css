@@ -77,11 +77,11 @@ th button {
   width: 100%; min-height: 3rem; padding: 0 1rem; display: flex; align-items: center; gap: .375rem;
   background: none; border: 0; font: 700 1rem var(--kanit); cursor: pointer; text-align: left;
 }
-th.c-p { padding: 0 1rem; font: 700 1rem var(--kanit); width: 6rem; }
+th.c-p { padding: 0 1rem; font: 700 1rem var(--kanit); width: 10rem; }
 th button:focus-visible { outline-offset: -4px; }
 td { height: 4.25rem; padding: 0 1rem; border-bottom: 2px solid var(--ground); font-variant-numeric: tabular-nums; }
 tr:last-child td { border-bottom: 0; }
-.c-s { width: 9.5rem; } .c-t { width: 9.5rem; } .c-h { width: 11rem; }
+.c-s { width: 9.5rem; } .c-t { width: 9.5rem; } .c-h { width: 9rem; }
 td.late small { white-space: nowrap; }
 td.task { padding: .5rem 1rem; }
 td.task button { background: none; border: 0; padding: .25rem 0; font: 700 1.25rem/1.25 var(--kanit); text-align: left; cursor: pointer; }
@@ -106,9 +106,14 @@ td.s[data-s="doing"]::before {
 td.s[data-s="done"] { background: var(--green); }
 td.late { background: var(--ink); color: var(--yellow); font-family: var(--kanit); font-weight: 700; }
 td.late small { display: block; font: 700 1rem var(--kanit); }
-.shot { display: block; width: 3.25rem; height: 2.5rem; padding: 0; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; background: none; cursor: pointer; }
+.pair { display: flex; gap: .5rem; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.shot { display: block; width: 3.5rem; height: 2.75rem; padding: 0; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; background: none; cursor: pointer; }
 .shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.none { color: var(--quiet); }
+/* an empty slot is never a flood: dashed = nothing yet, heavier dashed + the word = due but missing */
+.slot { display: grid; place-items: center; width: 3.5rem; height: 2.75rem; padding: 0; border-radius: 10px; background: none; font: 700 1rem var(--kanit); }
+.slot.due { border: 2px dashed var(--ink); color: var(--quiet); }
+.slot.miss { border: 4px dashed var(--ink); color: var(--ink); background: #fff; cursor: pointer; }
 
 .empty { padding: 3rem 1.5rem; }
 .empty h2 { font: 700 1.25rem/1.25 var(--kanit); }
@@ -140,10 +145,13 @@ td.late small { display: block; font: 700 1rem var(--kanit); }
 .stat[data-s="doing"] { background: var(--yellow); color: var(--ink); }
 .stat[data-s="done"] { background: var(--green); }
 .photo { margin-top: 1rem; }
-.photo > button { display: block; width: 100%; height: 9rem; padding: 0; border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; background: none; cursor: pointer; }
-.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.photo .noimg { display: grid; place-items: center; height: 9rem; border: 2px dashed var(--ink); border-radius: 12px; color: var(--quiet); }
-.photo small { display: block; margin-top: .375rem; color: var(--quiet); }
+.pair2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.pair2 .lab { display: block; margin-bottom: .375rem; font: 700 1rem var(--kanit); }
+.pair2 button { display: block; width: 100%; height: 7rem; padding: 0; border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; background: none; cursor: pointer; }
+.pair2 img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.noimg { display: grid; place-items: center; height: 7rem; padding: 0 .5rem; text-align: center; border: 2px dashed var(--ink); border-radius: 12px; color: var(--quiet); }
+.noimg.miss { border-width: 4px; color: var(--ink); font-weight: 700; }
+.photo small { display: block; margin-top: .375rem; color: var(--quiet); font-size: 1rem; }
 .actions { display: flex; gap: .75rem; margin-top: 1.25rem; }
 .actions .primary { flex: 1; }
 .lock { margin-top: 1rem; color: var(--quiet); }
@@ -151,7 +159,11 @@ td.late small { display: block; font: 700 1rem var(--kanit); }
 .prompt h2 { color: var(--ink); }
 .prompt .primary { margin-top: 1.25rem; }
 
-dialog { width: min(92vw, 48rem); padding: 1.25rem; border: 2px solid var(--ink); border-radius: 14px; background: #fff; color: var(--ink); }
+.pair-lb { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .75rem; }
+.pair-lb figure { margin: 0; }
+.pair-lb figcaption { margin-bottom: .375rem; font: 700 1rem var(--kanit); }
+.pair-lb .noimg { height: 12rem; }
+dialog { max-height: 90vh; overflow: auto; width: min(94vw, 64rem); padding: 1.25rem; border: 2px solid var(--ink); border-radius: 14px; background: #fff; color: var(--ink); }
 dialog::backdrop { background: rgba(20, 24, 27, .7); }
 dialog img { display: block; width: 100%; max-height: 70vh; object-fit: contain; border-radius: 10px; background: var(--ground); }
 dialog p { margin: .75rem 0 1rem; }
@@ -163,16 +175,15 @@ dialog p { margin: .75rem 0 1rem; }
 .toast { visibility: hidden; opacity: 0; transition: opacity .15s linear; }
 .toast.show { visibility: visible; opacity: 1; }
 
-/* tablet: the drawer becomes a panel that opens over the table */
-@media (max-width: 1099px) {
+/* below 1280px the drawer becomes a panel over the table: beside it, the table no longer fits its five columns */
+@media (max-width: 1279px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
   .drawer {
-    position: fixed; z-index: 10; top: 0; right: 0; bottom: 0; width: min(26rem, 100%);
+    position: fixed; z-index: 10; top: 0; right: 0; bottom: 0; width: min(26rem, 100%); max-height: none;
     border-radius: 0; border-width: 0 0 0 2px; overflow-y: auto; padding: 1.25rem;
   }
   .drawer[data-open="false"] { display: none; }
   .x { display: grid; }
-  .c-h { width: 9rem; }
 }
 @media (max-width: 699px) {
   .c-p { display: none; }

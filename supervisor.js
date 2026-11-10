@@ -1,26 +1,28 @@
 'use strict';
 // Prototype: sample data only, kept in this browser. Changes do not reach technician phones.
-const KEY = 'dailytrack.sup.v1';
+const KEY = 'dailytrack.sup.v2';
 const NOW0 = 11 * 60 + 20; // the sample day is frozen at 11:20; "+30 น." moves it so the late rule can be seen
 const TECHS = ['สมชาย ป.', 'วิชัย ก.', 'ประเสริฐ ท.', 'อนุชา ส.', 'สุรชัย ม.', 'ธนากร พ.', 'ณัฐพล ว.', 'กิตติ ร.'];
 const PLACES = ['อาคาร A', 'อาคาร B', 'อาคาร C', 'อาคาร D', 'ลานจอดรถ', 'โรงงาน 1', 'โรงงาน 2', 'ห้องประชุม 2'];
 const COMMON = ['ล้างแอร์', 'ตรวจปั๊มน้ำ', 'เปลี่ยนหลอดไฟ', 'ตรวจสายไฟ', 'ซ่อมประตู'];
 const LABEL = { todo: 'รอทำ', doing: 'กำลังทำ', done: 'เสร็จ' };
 const ORDER = { todo: 0, doing: 1, done: 2 };
-const FILTERS = [['all', 'ทั้งหมด'], ['todo', 'รอทำ'], ['doing', 'กำลังทำ'], ['done', 'เสร็จ']];
+const FILTERS = [['all', 'ทั้งหมด'], ['todo', 'รอทำ'], ['doing', 'กำลังทำ'], ['done', 'เสร็จ'], ['photo', 'รูปไม่ครบ']];
+const NAMES = { before: 'ก่อนเริ่ม', after: 'หลังเสร็จ' };
 const HEADS = [['status', 'สถานะ'], ['time', 'เวลา'], ['title', 'ภารกิจ'], ['tech', 'ช่าง']];
 
-const T = (id, time, title, tech, place, status, photo) => ({ id, time, title, tech, place, status, photo: photo || null });
+// photos: before = taken to start the task, after = taken to finish it (both required by the technician app)
+const T = (id, time, title, tech, place, status, x = {}) => ({ id, time, title, tech, place, status, before: null, after: null, beforeAt: null, afterAt: null, ...x });
 const SAMPLE = () => ({
   now: NOW0, nextId: 15,
   tasks: [
-    T(1, '08:00', 'ล้างแอร์ ห้อง 302', 'สมชาย ป.', 'อาคาร B', 'done', 'a'),
-    T(2, '08:30', 'ตรวจถังดับเพลิง', 'สุรชัย ม.', 'อาคาร C', 'done', 'b'),
-    T(3, '09:00', 'ซ่อมมือจับประตู', 'กิตติ ร.', 'อาคาร B', 'done'),
-    T(4, '09:30', 'ซ่อมประตูเหล็ก', 'วิชัย ก.', 'อาคาร D', 'doing'),
-    T(5, '10:30', 'เปลี่ยนเบรกเกอร์', 'สมชาย ป.', 'ตู้ไฟชั้น 2 อาคาร A', 'doing'),
+    T(1, '08:00', 'ล้างแอร์ ห้อง 302', 'สมชาย ป.', 'อาคาร B', 'done', { before: 'a', beforeAt: '08:02', after: 'a2', afterAt: '08:41' }),
+    T(2, '08:30', 'ตรวจถังดับเพลิง', 'สุรชัย ม.', 'อาคาร C', 'done', { before: 'b', beforeAt: '08:33', after: 'b2', afterAt: '08:58' }),
+    T(3, '09:00', 'ซ่อมมือจับประตู', 'กิตติ ร.', 'อาคาร B', 'done', { before: 'b', beforeAt: '09:04' }), // finished, after photo missing
+    T(4, '09:30', 'ซ่อมประตูเหล็ก', 'วิชัย ก.', 'อาคาร D', 'doing', { before: 'a', beforeAt: '09:36' }),
+    T(5, '10:30', 'เปลี่ยนเบรกเกอร์', 'สมชาย ป.', 'ตู้ไฟชั้น 2 อาคาร A', 'doing', { before: 'b', beforeAt: '10:34' }),
     T(6, '11:00', 'เปลี่ยนหลอดไฟ', 'ประเสริฐ ท.', 'ลานจอดรถ', 'todo'),
-    T(7, '11:00', 'ตรวจแอร์', 'อนุชา ส.', 'ห้องประชุม 2', 'doing'),
+    T(7, '11:00', 'ตรวจแอร์', 'อนุชา ส.', 'ห้องประชุม 2', 'doing'), // started, before photo missing
     T(8, '11:30', 'ตรวจตู้ควบคุม', 'สุรชัย ม.', 'อาคาร C', 'todo'),
     T(9, '13:00', 'ตรวจปั๊มน้ำ', 'สมชาย ป.', 'โรงงาน 2', 'todo'),
     T(10, '13:00', 'ตรวจระบบน้ำ', 'ณัฐพล ว.', 'อาคาร A', 'todo'),
@@ -40,9 +42,17 @@ const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m
 // Synthetic sample photos, drawn here; every one is labelled "รูปตัวอย่าง" where it is shown.
 const PHOTOS = {
   a: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 240'><rect width='320' height='240' fill='#C9D1CD'/><rect x='50' y='56' width='220' height='96' rx='10' fill='#14181B'/><rect x='66' y='72' width='188' height='14' rx='4' fill='#EDF0EE'/><circle cx='230' cy='120' r='14' fill='#17713D'/><rect x='80' y='170' width='160' height='10' rx='5' fill='#8A938E'/></svg>",
+  a2: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 240'><rect width='320' height='240' fill='#C9D1CD'/><rect x='50' y='56' width='220' height='96' rx='10' fill='#17713D'/><rect x='66' y='72' width='188' height='14' rx='4' fill='#EDF0EE'/><rect x='66' y='96' width='120' height='10' rx='4' fill='#EDF0EE'/><circle cx='230' cy='120' r='14' fill='#EDF0EE'/><rect x='80' y='170' width='160' height='10' rx='5' fill='#8A938E'/></svg>",
+  b2: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 240'><rect width='320' height='240' fill='#C9D1CD'/><rect x='128' y='60' width='64' height='140' rx='14' fill='#D6261E'/><rect x='146' y='36' width='28' height='30' rx='6' fill='#17713D'/><rect x='170' y='44' width='36' height='8' rx='4' fill='#14181B'/><rect x='140' y='110' width='40' height='30' rx='4' fill='#EDF0EE'/><rect x='146' y='150' width='28' height='8' rx='4' fill='#EDF0EE'/></svg>",
   b: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 240'><rect width='320' height='240' fill='#C9D1CD'/><rect x='128' y='60' width='64' height='140' rx='14' fill='#D6261E'/><rect x='146' y='36' width='28' height='30' rx='6' fill='#14181B'/><rect x='170' y='44' width='36' height='8' rx='4' fill='#14181B'/><rect x='140' y='110' width='40' height='30' rx='4' fill='#EDF0EE'/></svg>",
 };
-const photoURI = (k) => 'data:image/svg+xml,' + encodeURIComponent(PHOTOS[k]);
+const photoURI = (k) => (PHOTOS[k] ? 'data:image/svg+xml,' + encodeURIComponent(PHOTOS[k]) : k); // a real photo would arrive as a URL
+
+// before is due once the task has started, after once it is done; a due photo that is absent is "missing"
+const need = (t, k) => (k === 'before' ? t.status !== 'todo' : t.status === 'done');
+const slot = (t, k) => (t[k] ? 'ok' : need(t, k) ? 'miss' : 'due');
+const issue = (t) => slot(t, 'before') === 'miss' || slot(t, 'after') === 'miss';
+const emptyText = (t, k) => (slot(t, k) === 'miss' ? 'ยังไม่ได้รับรูป' : t.status === 'todo' ? 'ยังไม่เริ่มงาน' : 'รอช่างจบงาน');
 
 let S, toastTimer = null;
 const UI = { filter: 'all', tech: '', sort: { key: 'time', dir: 1 }, sel: null, mode: null, lastFocus: null };
@@ -57,7 +67,8 @@ function load() {
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } }
 
 function lateMins(t) { return t.status !== 'done' && S.now > mins(t.time) ? S.now - mins(t.time) : 0; }
-function fmtLate(m) { return m < 60 ? `เลย ${m} น.` : `เลย ${Math.floor(m / 60)} ชม.${m % 60 ? ' ' + (m % 60) + ' น.' : ''}`; }
+function dur(m) { m = Math.max(0, m); return m < 60 ? `${m} น.` : `${Math.floor(m / 60)} ชม.${m % 60 ? ' ' + (m % 60) + ' น.' : ''}`; }
+function fmtLate(m) { return 'เลย ' + dur(m); }
 
 function visible() {
   const { key, dir } = UI.sort;
@@ -67,7 +78,7 @@ function visible() {
     title: (a, b) => a.title.localeCompare(b.title, 'th'),
     tech: (a, b) => a.tech.localeCompare(b.tech, 'th') || mins(a.time) - mins(b.time),
   }[key];
-  return S.tasks.filter((t) => (!UI.tech || t.tech === UI.tech) && (UI.filter === 'all' || t.status === UI.filter))
+  return S.tasks.filter((t) => (!UI.tech || t.tech === UI.tech) && (UI.filter === 'all' || (UI.filter === 'photo' ? issue(t) : t.status === UI.filter)))
     .sort((a, b) => cmp(a, b) * dir);
 }
 
@@ -91,7 +102,7 @@ function renderChrome() {
   const pool = S.tasks.filter((t) => !UI.tech || t.tech === UI.tech);
   document.querySelectorAll('#seg button').forEach((b) => {
     const k = b.dataset.filter;
-    const n = k === 'all' ? pool.length : pool.filter((t) => t.status === k).length;
+    const n = k === 'all' ? pool.length : k === 'photo' ? pool.filter(issue).length : pool.filter((t) => t.status === k).length;
     b.textContent = `${FILTERS.find(([f]) => f === k)[1]} ${n}`;
     b.setAttribute('aria-pressed', String(UI.filter === k));
   });
@@ -117,9 +128,13 @@ function renderRows() {
     const late = lateMins(t);
     const stat = `<td class="s" data-s="${t.status}"><span>${t.status === 'done' ? icon('check') : ''}${LABEL[t.status]}</span></td>`;
     const time = late ? `<td class="late">${t.time}<small>${fmtLate(late)}</small></td>` : `<td>${t.time}</td>`;
-    const shot = t.photo
-      ? `<button type="button" class="shot" data-shot="${t.id}" aria-label="ดูรูปของ ${esc(t.title)}"><img src="${photoURI(t.photo)}" alt=""></button>`
-      : `<span class="none" aria-label="ไม่มีรูป">—</span>`;
+    const cell = (k) => {
+      const s = slot(t, k);
+      if (s === 'ok') return `<button type="button" class="shot" data-shot="${t.id}" aria-label="ดูรูป${NAMES[k]}ของ ${esc(t.title)}"><img src="${photoURI(t[k])}" alt=""></button>`;
+      if (s === 'miss') return `<button type="button" class="slot miss" data-shot="${t.id}" aria-label="รอรูป${NAMES[k]}ของ ${esc(t.title)}">รอรูป</button>`;
+      return `<span class="slot due"><span class="sr">ยังไม่ถึงขั้นตอนถ่ายรูป${NAMES[k]}</span>—</span>`;
+    };
+    const shot = `<div class="pair">${cell('before')}${cell('after')}</div>`;
     return `<tr data-id="${t.id}" data-sel="${UI.sel === t.id}" class="${t.status === 'done' ? 'is-done' : ''}">${stat}${time}
       <td class="task"><button type="button" class="open" data-open="${t.id}"${UI.sel === t.id ? ' aria-current="true"' : ''}>${esc(t.title)}</button><p>${esc(t.place)}</p></td>
       <td class="c-h">${esc(t.tech)}</td><td class="c-p">${shot}</td></tr>`;
@@ -139,13 +154,20 @@ function formHTML(t, errs = {}, vals = {}, locked = false) {
   const quick = t ? '' : `<div class="quick" role="group" aria-label="ภารกิจที่ใช้บ่อย">${COMMON.map((c) => `<button type="button" data-quick="${esc(c)}">${esc(c)}</button>`).join('')}</div>`;
   return field('f-title', 'ภารกิจ', `<input type="text" id="f-title" name="title" value="${v('title')}" autocomplete="off"${d}${inv('title')}>${quick}`, errs.title) +
     field('f-tech', 'ช่าง', `<select id="f-tech" name="tech"${d}${inv('tech')}>${techOpts}</select>`, errs.tech) +
-    field('f-time', 'เวลา', `<input type="time" id="f-time" name="time" value="${vals.time ?? (t ? t.time : hhmm(Math.ceil((S.now + 1) / 30) * 30))}"${d}${inv('time')}>`, errs.time) +
+    field('f-time', 'เวลา', `<input type="time" id="f-time" name="time" value="${vals.time ?? (t ? t.time : hhmm(Math.min(Math.ceil((S.now + 1) / 30) * 30, 23 * 60 + 30)))}"${d}${inv('time')}>`, errs.time) +
     field('f-place', 'สถานที่', `<input type="text" id="f-place" name="place" list="places" value="${v('place')}" autocomplete="off"${d}${inv('place')}>`, errs.place);
 }
 
 function subText(t) {
   const late = lateMins(t);
-  return `${t.time} · ${esc(t.place)}${late ? ' · ' + fmtLate(late) : ''}`;
+  let s = `${t.time} · ${esc(t.place)}${late ? ' · ' + fmtLate(late) : ''}`;
+  // the photo times are the evidence of when work really started and ended
+  if (t.beforeAt) {
+    s += '<br>' + (t.status === 'done'
+      ? `เริ่ม ${t.beforeAt}` + (t.afterAt ? ` · จบ ${t.afterAt} · ใช้เวลา ${dur(mins(t.afterAt) - mins(t.beforeAt))}` : '')
+      : `เริ่ม ${t.beforeAt} · ทำมาแล้ว ${dur(S.now - mins(t.beforeAt))}`);
+  }
+  return s;
 }
 // the clock moved: refresh the late text without rebuilding the form (keeps unsaved input)
 function refreshSub() {
@@ -171,9 +193,14 @@ function renderDrawer(errs, vals) {
     return;
   }
   const locked = t.status === 'done';
-  const photo = t.photo
-    ? `<div class="photo"><span class="lab">รูปที่แนบ</span><button type="button" data-shot="${t.id}" aria-label="ดูรูปใหญ่ของ ${esc(t.title)}"><img src="${photoURI(t.photo)}" alt="รูปตัวอย่างของ ${esc(t.title)}"></button><small>รูปตัวอย่าง · แตะเพื่อดูรูปใหญ่</small></div>`
-    : `<div class="photo"><span class="lab">รูปที่แนบ</span><div class="noimg">ยังไม่มีรูปแนบ</div></div>`;
+  const fig = (k) => {
+    const s = slot(t, k);
+    const lab = `<span class="lab">${NAMES[k]}${t[k + 'At'] ? ' · ' + t[k + 'At'] : ''}</span>`;
+    return `<div>${lab}` + (s === 'ok'
+      ? `<button type="button" data-shot="${t.id}" aria-label="ดูรูป${NAMES[k]}ใหญ่ของ ${esc(t.title)}"><img src="${photoURI(t[k])}" alt="รูปตัวอย่าง${NAMES[k]} ${esc(t.title)}"></button>`
+      : `<div class="noimg${s === 'miss' ? ' miss' : ''}">${emptyText(t, k)}</div>`) + '</div>';
+  };
+  const photo = `<div class="photo"><div class="pair2">${fig('before')}${fig('after')}</div>${t.before || t.after ? '<small>รูปตัวอย่าง · แตะเพื่อดูรูปก่อนและหลังคู่กัน</small>' : ''}</div>`;
   dr.innerHTML = `<form id="form" novalidate><div class="dhead"><div><h2 tabindex="-1">${esc(t.title)}</h2>
       <p class="sub" id="dsub">${subText(t)}</p></div>${close}</div>
     <p class="stat" data-s="${t.status}">${LABEL[t.status]}</p>
@@ -185,9 +212,10 @@ function renderDrawer(errs, vals) {
 function render() { renderChrome(); renderRows(); renderDrawer(); $('#plus30').disabled = S.now >= 23 * 60 + 30; }
 
 /* ---- actions ---- */
-const narrow = () => matchMedia('(max-width: 1099px)').matches;
+const narrow = () => matchMedia('(max-width: 1279px)').matches;
 
 function open(id, from) {
+  if (UI.mode === 'view' && UI.sel === id && !from) return; // re-clicking the open row must not wipe unsaved edits
   UI.sel = id; UI.mode = 'view'; UI.lastFocus = from || null;
   renderRows(); renderDrawer();
   // keyboard opens (and any open on a narrow screen) move focus into the drawer; closing returns it to the row
@@ -238,6 +266,7 @@ function submit(e) {
     const t = S.tasks.find((x) => x.id === UI.sel);
     const moved = t.tech !== vals.tech;
     Object.assign(t, vals);
+    if (UI.tech && UI.tech !== t.tech) { UI.tech = ''; $('#tech').value = ''; } // keep the moved row on screen
     save(); render(); $('#drawer h2').focus();
     toast(moved ? `ย้าย “${t.title}” ไปให้ ${t.tech} แล้ว` : `บันทึก “${t.title}” แล้ว`);
   }
@@ -245,8 +274,14 @@ function submit(e) {
 
 function openLightbox(id) {
   const t = S.tasks.find((x) => x.id === id);
-  if (!t || !t.photo) return;
-  $('#lbBody').innerHTML = `<img src="${photoURI(t.photo)}" alt="รูปตัวอย่างของ ${esc(t.title)}">`;
+  if (!t) return;
+  const fig = (k) => {
+    const s = slot(t, k);
+    return `<figure><figcaption>${NAMES[k]}${t[k + 'At'] ? ' · ' + t[k + 'At'] : ''}</figcaption>` + (s === 'ok'
+      ? `<img src="${photoURI(t[k])}" alt="รูปตัวอย่าง${NAMES[k]} ${esc(t.title)}">`
+      : `<div class="noimg${s === 'miss' ? ' miss' : ''}">${emptyText(t, k)}</div>`) + '</figure>';
+  };
+  $('#lbBody').innerHTML = `<div class="pair-lb">${fig('before')}${fig('after')}</div>`;
   $('#lbCap').textContent = `รูปตัวอย่าง · ${t.title} · ${t.tech}`;
   $('#lightbox').showModal();
 }

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Track · เข้าสู่ระบบ</title>
+<meta name="theme-color" content="#EDF0EE">
+<link rel="preload" href="fonts/kanit-700-thai.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="login.css">
+<script src="auth.js" data-role="login"></script>
+</head>
+<body>
+<main class="wrap">
+  <p class="brand">Daily Track</p>
+  <h1>เข้าสู่ระบบ</h1>
+  <p class="lead">ช่างและหัวหน้าใช้ช่องเดียวกัน ระบบพาไปหน้าของคุณเอง</p>
+
+  <form id="f" novalidate>
+    <div class="field">
+      <label for="code">รหัสพนักงาน</label>
+      <input id="code" type="text" autocomplete="username" autocapitalize="characters" spellcheck="false" aria-describedby="err">
+    </div>
+    <div class="field">
+      <label for="pw">รหัสผ่าน</label>
+      <input id="pw" type="password" autocomplete="current-password" aria-describedby="err">
+    </div>
+    <p class="err" id="err" role="alert"></p>
+    <button type="submit" class="primary">เข้าสู่ระบบ</button>
+  </form>
+
+  <p class="note">
+    ข้อมูลตัวอย่างสำหรับลอง<br>
+    ช่าง <b>T01</b> / <b>1234</b> · หัวหน้า <b>S01</b> / <b>9999</b>
+  </p>
+</main>
+
+<script>
+(function () {
+  var f = document.getElementById('f'), code = document.getElementById('code'),
+      pw = document.getElementById('pw'), err = document.getElementById('err');
+
+  function fail(msg, field) {
+    err.textContent = msg;
+    f.dataset.err = '1';
+    field.focus();
+  }
+
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    f.removeAttribute('data-err');
+    err.textContent = '';
+    if (!code.value.trim()) return fail('กรอกรหัสพนักงาน', code);
+    if (!pw.value) return fail('กรอกรหัสผ่าน', pw);
+    var to = Auth.login(code.value, pw.value);
+    if (to) return location.replace(to);
+    if (to === false) return fail('เบราว์เซอร์ไม่ให้บันทึกการเข้าสู่ระบบ ลองปิดโหมดส่วนตัว', code);
+    pw.value = '';
+    fail('รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง ลองอีกครั้ง', pw);
+  });
+})();
+</script>
+</body>
+</html>

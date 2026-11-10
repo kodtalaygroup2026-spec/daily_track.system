@@ -1,10 +1,14 @@
 'use strict';
 // Prototype: sample data only, state kept in this browser. No backend yet.
-const KEY = 'dailytrack.sample.v1';
+// Photos are the gate: a task starts only with a BEFORE photo and finishes only with an AFTER photo.
+const KEY = 'dailytrack.sample.v2';
+const PKEY = KEY + '.photos'; // photos live apart from task state, so a full storage quota can never lose a status change
 const LABEL = { todo: 'รอทำ', doing: 'กำลังทำ', done: 'เสร็จ' };
+// one drawn sample photo, shown only so the sample day is consistent
+const SHOT = 'data:image/svg+xml,' + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 240'><rect width='320' height='240' fill='#C9D1CD'/><rect x='128' y='60' width='64' height='140' rx='14' fill='#D6261E'/><rect x='146' y='36' width='28' height='30' rx='6' fill='#14181B'/><rect x='140' y='110' width='40' height='30' rx='4' fill='#EDF0EE'/></svg>");
 const SAMPLE = () => [
-  { id: 1, title: 'ล้างแอร์ ห้อง 302', time: '08:00', place: 'อาคาร B', status: 'done' },
-  { id: 2, title: 'เปลี่ยนเบรกเกอร์', time: '10:30', place: 'ตู้ไฟชั้น 2 อาคาร A', status: 'doing' },
+  { id: 1, title: 'ล้างแอร์ ห้อง 302', time: '08:00', place: 'อาคาร B', status: 'done', before: SHOT, after: SHOT, beforeAt: '08:02', afterAt: '08:41' },
+  { id: 2, title: 'เปลี่ยนเบรกเกอร์', time: '10:30', place: 'ตู้ไฟชั้น 2 อาคาร A', status: 'doing', before: SHOT, beforeAt: '10:34' },
   { id: 3, title: 'ตรวจปั๊มน้ำ', time: '13:00', place: 'โรงงาน 2', status: 'todo' },
   { id: 4, title: 'ซ่อมไฟทางเดิน', time: '15:00', place: 'ลานจอดรถ', status: 'todo' },
   { id: 5, title: 'เช็คสายไฟชั้น 5', time: '16:30', place: 'อาคาร C', status: 'todo' },
@@ -13,18 +17,32 @@ const SAMPLE = () => [
 const $ = (s) => document.querySelector(s);
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const icon = (n) => `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const hhmm = () => new Date().toTimeString().slice(0, 5);
 
 let tasks, queue, lastChange = null, toastTimer = null, drag = null;
+let pending = null, busy = false, photosOk = true; // pending = the photo the open camera is for
 
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(KEY));
-    if (d && Array.isArray(d.tasks)) { tasks = d.tasks; queue = d.queue || []; return; }
+    if (d && Array.isArray(d.tasks)) {
+      tasks = d.tasks; queue = d.queue || [];
+      try {
+        const p = JSON.parse(localStorage.getItem(PKEY)) || {};
+        tasks.forEach((t) => Object.assign(t, p[t.id]));
+      } catch (e) { /* photos lost: a doing task without its before photo shows the repair button */ }
+      return;
+    }
   } catch (e) { /* storage unavailable: start from the sample */ }
   tasks = SAMPLE(); queue = [];
 }
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify({ tasks: tasks.map(({ photo, ...t }) => t), queue })); } catch (e) { /* ignore */ }
+  try { localStorage.setItem(KEY, JSON.stringify({ tasks: tasks.map(({ before, after, ...t }) => t), queue })); } catch (e) { /* ignore */ }
+  try {
+    localStorage.setItem(PKEY, JSON.stringify(Object.fromEntries(
+      tasks.filter((t) => t.before || t.after).map((t) => [t.id, { before: t.before, after: t.after }]))));
+    photosOk = true;
+  } catch (e) { photosOk = false; }
 }
 
 function boxHTML(t) {
@@ -33,22 +51,25 @@ function boxHTML(t) {
   const label = (ic) => `<span class="st">${ic || ''}${LABEL[t.status]}</span>`;
   if (t.status === 'todo') {
     return `<li><article class="box" data-state="todo"${from}>
-      <button type="button" class="main" data-start="${t.id}" aria-label="เริ่มงาน ${esc(t.title)}">
-        <h2>${esc(t.title)}</h2>${meta}
+      <button type="button" class="main" data-start="${t.id}">
+        <h2>${esc(t.title)}</h2>${meta}<span class="cue">${icon('camera')}ถ่ายรูปก่อนเริ่ม</span>
       </button>${label()}</article></li>`;
   }
   if (t.status === 'doing') {
-    const shot = t.photo ? `<img class="shot" src="${t.photo}" alt="รูปที่แนบกับ ${esc(t.title)}">` : '';
+    // no before photo (lost from storage): repair it here, and the finish track stays out of the way
+    const body = t.before
+      ? `<div class="tools"><img class="shot" src="${t.before}" alt="รูปก่อนเริ่ม ${esc(t.title)}"><button type="button" class="photo" data-photo="${t.id}">${icon('camera')}ถ่ายรูปก่อนใหม่</button></div>
+        <div class="track" data-id="${t.id}"><div class="fill"></div><span class="lbl">ปัดเพื่อถ่ายรูปหลัง</span>
+          <button type="button" class="thumb" aria-label="ถ่ายรูปหลังแล้วจบงาน ${esc(t.title)} (ลากไปทางขวา หรือกด Enter)">${icon('chev')}</button></div>`
+      : `<div class="tools"><button type="button" class="photo need" data-photo="${t.id}">${icon('camera')}ถ่ายรูปก่อน</button></div>
+        <p class="needtxt">ต้องมีรูปก่อนจึงจะจบงานได้</p>`;
     return `<li><article class="box" data-state="doing"${from}>
       <div class="band" aria-hidden="true"></div>
-      <div class="doing-body">${label()}<h2>${esc(t.title)}</h2>${meta}
-        <div class="tools"><button type="button" class="photo" data-photo="${t.id}">${icon('camera')}${t.photo ? 'เปลี่ยนรูป' : 'แนบรูป'}</button>${shot}</div>
-        <div class="track" data-id="${t.id}"><div class="fill"></div><span class="lbl">ปัดเพื่อจบงาน</span>
-          <button type="button" class="thumb" aria-label="จบงาน ${esc(t.title)} (ลากไปทางขวา หรือกด Enter)">${icon('chev')}</button></div>
-      </div></article></li>`;
+      <div class="doing-body">${label()}<h2>${esc(t.title)}</h2>${meta}${body}</div></article></li>`;
   }
+  const both = t.before && t.after ? `<span class="cue">${icon('camera')}รูปก่อน-หลังครบ</span>` : '';
   return `<li><article class="box" data-state="done"${from}>${label(icon('check'))}
-    <h2>${esc(t.title)}</h2>${meta}</article></li>`;
+    <h2>${esc(t.title)}</h2>${meta}${both}</article></li>`;
 }
 
 function render() {
@@ -81,61 +102,130 @@ function render() {
 let sentCount = 0, sentTimer = null;
 function renderNet() {
   const off = !navigator.onLine;
-  $('#net').hidden = !(off || sentCount);
-  $('#netText').textContent = off
-    ? 'ไม่มีสัญญาณ งานที่อัปเดตจะบันทึกไว้ในเครื่องและส่งเมื่อมีสัญญาณ' + (queue.length ? ` · รอส่ง ${queue.length} รายการ` : '')
-    : `ส่งแล้ว ${sentCount} รายการ`;
+  const msgs = [];
+  if (!photosOk) msgs.push('เก็บรูปในเครื่องไม่ได้ พื้นที่เต็ม รูปจะหายถ้าปิดหน้านี้');
+  if (off) {
+    const shots = queue.filter((q) => q.ph).length;
+    msgs.push('ไม่มีสัญญาณ งานและรูปที่ถ่ายจะบันทึกไว้ในเครื่องและส่งเมื่อมีสัญญาณ'
+      + (queue.length ? ` · รอส่ง ${queue.length - shots} รายการ` + (shots ? ` · รูป ${shots} ใบ` : '') : ''));
+  } else if (sentCount) msgs.push(`ส่งแล้ว ${sentCount} รายการ`);
+  $('#net').hidden = !msgs.length;
+  $('#netText').textContent = msgs.join(' · ');
 }
 
 // move focus to where the next action is, since render() rebuilds the list
 function focusAfter(id, to) {
-  const el = to === 'doing' ? document.querySelector(`.track[data-id="${id}"] .thumb`)
-    : to === 'done' ? $('#undo')
+  const el = to === 'doing' ? document.querySelector(`.track[data-id="${id}"] .thumb`) || document.querySelector(`[data-photo="${id}"]`)
+    // after a finish, focus the next thing to do (the 8 s undo button would vanish under the user's focus)
+    : to === 'done' ? document.querySelector('[data-start]') || document.querySelector('.thumb') || $('#undo')
+    : to === 'todo' ? document.querySelector(`[data-start="${id}"]`)
     : document.querySelector(`[data-photo="${id}"]`);
   if (el) el.focus();
+}
+
+function queuePhoto(id, ph) {
+  if (!navigator.onLine && !queue.some((q) => q.id === id && q.ph === ph)) queue.push({ id, ph });
 }
 
 function setStatus(id, to, opts = {}) {
   const t = tasks.find((x) => x.id === id);
   if (!t || t.status === to) return;
+  // the gate: the photo must already be on the task, whichever control got here
+  if ((to === 'doing' && t.status === 'todo' && !t.before) || (to === 'done' && !(t.before && t.after))) return;
   lastChange = { id, from: t.status };
   t.status = to;
-  if (!navigator.onLine && !opts.noQueue) queue.push({ id, to });
+  if (!navigator.onLine && !opts.noQueue) { queue.push({ id, to }); if (opts.ph) queuePhoto(id, opts.ph); }
   save();
-  if (to === 'done') showToast(t);
+  if (to === 'done') showToast(`จบงาน “${t.title}” แล้ว`, t.id);
   render();
   focusAfter(id, to);
 }
 
-function showToast(t) {
+// undoId set: the toast carries "เลิกทำ" for 8 s; otherwise it is a plain 4 s message that never replaces a live undo
+// force: a failure the technician must hear about may replace a live undo toast
+function showToast(text, undoId, force) {
+  const live = $('#toast').classList.contains('show') && !$('#undo').hidden;
+  if (!undoId && !force && live) return;
   clearTimeout(toastTimer);
-  $('#toastText').textContent = `จบงาน “${t.title}” แล้ว`;
-  $('#undo').dataset.id = t.id;
-  $('#toast').hidden = false;
-  toastTimer = setTimeout(hideToast, 8000);
+  $('#toastText').textContent = text;
+  $('#undo').hidden = !undoId;
+  if (undoId) $('#undo').dataset.id = undoId;
+  $('#toast').classList.add('show'); // stays in the DOM so the live region announces the text
+  toastTimer = setTimeout(hideToast, undoId ? 8000 : 4000);
 }
-function hideToast() { $('#toast').hidden = true; }
+function hideToast() { $('#toast').classList.remove('show'); }
 
 $('#undo').addEventListener('click', (e) => {
   const id = Number(e.currentTarget.dataset.id);
+  const t = tasks.find((x) => x.id === id);
   const i = queue.map((q) => q.id === id && q.to === 'done').lastIndexOf(true);
   if (i >= 0) queue.splice(i, 1);
+  queue = queue.filter((q) => !(q.id === id && q.ph === 'after'));
+  if (t) { t.after = null; t.afterAt = null; } // the finish is undone, so its photo goes with it
   hideToast(); setStatus(id, 'doing', { noQueue: i >= 0 });
+  showToast('เลิกทำแล้ว · ลบรูปหลังแล้ว ต้องถ่ายใหม่ตอนจบงาน');
+});
+
+/* ---- camera: every start and finish goes through here ---- */
+function openCamera(id, kind) {
+  if (busy) return;
+  pending = { id, kind }; // overwritten, never blocking: a cancelled camera must not leave the app stuck
+  const f = $('#file'); f.value = ''; f.click();
+}
+
+// downscale so ~12 photos fit in localStorage. shortcut: 800px / JPEG .6 may be too small to read a serial number, raise when supervisors ask
+async function toJpeg(file) {
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, 800 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.6);
+}
+
+const allowed = (t, kind) => kind === 'before' || (t.status === 'doing' && !!t.before);
+
+function release(p) {
+  pending = null;
+  if (!p) return;
+  const t = tasks.find((x) => x.id === p.id);
+  showToast(p.kind === 'after' ? 'ยังไม่จบงาน · ต้องถ่ายรูปหลังก่อน'
+    : t && t.status === 'todo' ? 'ยังไม่ได้เริ่มงาน · ต้องถ่ายรูปก่อน'
+    : t && !t.before ? 'ยังไม่มีรูปก่อน · ต้องถ่ายก่อนจึงจะจบงานได้' : 'ไม่ได้ถ่ายใหม่ · ใช้รูปเดิมต่อ');
+  focusAfter(p.id, p.kind === 'after' ? 'doing' : t && t.status === 'todo' ? 'todo' : 'photo');
+}
+
+$('#file').addEventListener('cancel', () => release(pending));
+$('#file').addEventListener('change', async (e) => {
+  const f = e.target.files[0], p = pending;
+  if (!p) return;
+  if (!f) return release(p);
+  pending = null; busy = true;
+  $('#list').setAttribute('aria-busy', 'true');
+  try {
+    const t = tasks.find((x) => x.id === p.id);
+    if (!t || !allowed(t, p.kind)) return; // the day was reset while the camera was open
+    t[p.kind] = await toJpeg(f);
+    t[p.kind + 'At'] = hhmm();
+    if (p.kind === 'before' && t.status === 'todo') setStatus(t.id, 'doing', { ph: 'before' });
+    else if (p.kind === 'after' && t.status === 'doing') setStatus(t.id, 'done', { ph: 'after' });
+    else { queuePhoto(t.id, p.kind); save(); render(); focusAfter(t.id, 'photo'); }
+    if (!photosOk) showToast('พื้นที่ในเครื่องเต็ม · รูปจะหายถ้าปิดหน้านี้', null, true);
+  } catch (err) {
+    showToast('เปิดรูปนี้ไม่ได้ · ลองถ่ายใหม่', null, true);
+    focusAfter(p.id, p.kind === 'after' ? 'doing' : 'photo');
+  } finally {
+    busy = false;
+    $('#list').removeAttribute('aria-busy');
+  }
 });
 
 const list = $('#list');
 list.addEventListener('click', (e) => {
   const start = e.target.closest('[data-start]');
-  if (start) return setStatus(Number(start.dataset.start), 'doing');
+  if (start) return openCamera(Number(start.dataset.start), 'before');
   const photo = e.target.closest('[data-photo]');
-  if (photo) { $('#file').dataset.id = photo.dataset.photo; $('#file').click(); }
-});
-
-$('#file').addEventListener('change', (e) => {
-  const f = e.target.files[0];
-  const t = tasks.find((x) => x.id === Number(e.target.dataset.id));
-  if (f && t) { t.photo = URL.createObjectURL(f); render(); focusAfter(t.id, 'photo'); }
-  e.target.value = '';
+  if (photo) openCamera(Number(photo.dataset.photo), 'before');
 });
 
 // swipe to finish: a forgiving drag on a dedicated track, never on the whole card
@@ -152,32 +242,33 @@ list.addEventListener('pointermove', (e) => {
   drag.x = Math.min(Math.max(e.clientX - drag.startX, 0), drag.max);
   drag.track.style.setProperty('--x', drag.x + 'px');
 });
-function endDrag() {
+function endDrag(e) {
   if (!drag) return;
   const { track, th, id, x, max } = drag;
   drag = null;
   track.classList.remove('drag');
-  if (x >= max * 0.72) return setStatus(id, 'done');
-  track.style.setProperty('--x', '0px');
+  track.style.setProperty('--x', '0px'); // the thumb always eases back: nothing can leave it stuck while the camera is open
+  if (e.type === 'pointerup' && x >= max * 0.72) return openCamera(id, 'after'); // a pointercancel is not a user gesture, never opens the camera
   if (x < 6) { th.classList.add('nudge'); setTimeout(() => th.classList.remove('nudge'), 650); }
 }
 list.addEventListener('pointerup', endDrag);
 list.addEventListener('pointercancel', endDrag);
-// a click with no pointer drag (screen reader double-tap, switch or voice control) finishes the task
+// a click with no pointer drag (screen reader double-tap, switch or voice control) opens the camera for the after photo
 list.addEventListener('click', (e) => {
   const th = e.target.closest('.thumb');
-  if (th && e.detail === 0) setStatus(Number(th.parentElement.dataset.id), 'done');
+  if (th && e.detail === 0) openCamera(Number(th.parentElement.dataset.id), 'after');
 });
 list.addEventListener('keydown', (e) => {
   const th = e.target.closest('.thumb');
   if (th && ['Enter', ' ', 'ArrowRight'].includes(e.key)) {
     e.preventDefault();
-    setStatus(Number(th.parentElement.dataset.id), 'done');
+    openCamera(Number(th.parentElement.dataset.id), 'after');
   }
 });
 
-$('#reset').addEventListener('click', () => { tasks = SAMPLE(); queue = []; hideToast(); save(); render(); });
-$('#empty').addEventListener('click', () => { tasks = []; queue = []; hideToast(); save(); render(); });
+function restart(next) { tasks = next; queue = []; pending = null; busy = false; hideToast(); save(); render(); }
+$('#reset').addEventListener('click', () => restart(SAMPLE()));
+$('#empty').addEventListener('click', () => restart([]));
 window.addEventListener('online', () => {
   sentCount = queue.length; queue = []; save(); renderNet();
   clearTimeout(sentTimer);
