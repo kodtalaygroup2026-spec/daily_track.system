@@ -1,0 +1,7 @@
+{
+  "routes": [
+    { "src": "^/(\\.impeccable|\\.claude|\\.git)(/.*)?$", "status": 404 },
+    { "src": "^/(PRODUCT|DESIGN)\\.md$", "status": 404 },
+    { "handle": "filesystem" }
+  ]
+}
