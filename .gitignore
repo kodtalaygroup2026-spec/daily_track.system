@@ -1,0 +1,5 @@
+# Impeccable scratch: decision sketches, review captures, question-page state, hook cache
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/questions/
+.impeccable/hook.cache.json

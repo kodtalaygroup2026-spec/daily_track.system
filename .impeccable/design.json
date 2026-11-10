@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-10T00:00:00Z",
+  "title": "Design System: Daily Track (Technician view)",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "neutral", "displayName": "Signboard Ink", "canonical": "#14181B", "tonalRamp": ["#14181B", "#262C30", "#3F4945", "#5E6A65", "#8A948F", "#B4BCB8", "#D6DBD8", "#EDF0EE"] },
+      "ground": { "role": "neutral", "displayName": "Concrete Ground", "canonical": "#EDF0EE", "tonalRamp": ["#3F4945", "#66716C", "#8D9792", "#B0B8B4", "#C9CFCC", "#DCE1DE", "#EDF0EE", "#F7F9F8"] },
+      "quiet-ink": { "role": "neutral", "displayName": "Quiet Ink", "canonical": "#3F4945", "tonalRamp": ["#14181B", "#222927", "#2E3633", "#3F4945", "#5A6560", "#7A8580", "#9DA6A2", "#C3C9C6"] },
+      "enamel-red": { "role": "primary", "displayName": "Enamel Red", "canonical": "#D6261E", "tonalRamp": ["#4A0E0B", "#701510", "#951C16", "#B8221A", "#D6261E", "#E8574F", "#F08F89", "#F9CBC8"] },
+      "enamel-yellow": { "role": "secondary", "displayName": "Enamel Yellow", "canonical": "#F5B800", "tonalRamp": ["#4D3A00", "#755800", "#9C7600", "#C79600", "#F5B800", "#F9CB47", "#FBDD85", "#FDEFC4"] },
+      "enamel-green": { "role": "tertiary", "displayName": "Enamel Green", "canonical": "#17713D", "tonalRamp": ["#06240F", "#0B3A1E", "#10502B", "#17713D", "#2A9156", "#5BB383", "#98D2B1", "#D1ECDC"] },
+      "white": { "role": "neutral", "displayName": "White", "canonical": "#FFFFFF", "tonalRamp": ["#14181B", "#4A4F52", "#7C8184", "#A8ACAE", "#C8CBCC", "#E0E2E3", "#F0F1F1", "#FFFFFF"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Date", "purpose": "The Thai date, one per screen." },
+      "title": { "displayName": "Task title", "purpose": "Task titles, weekday, empty and all-done headings." },
+      "body": { "displayName": "Detail", "purpose": "Meta, counts, toast text." },
+      "label": { "displayName": "State word / button", "purpose": "State words and button labels in Kanit." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease", "value": "cubic-bezier(.16, 1, .3, 1)", "purpose": "Wipe, fill and thumb movement." },
+      { "name": "unwipe", "value": ".45s", "purpose": "Previous coat slides off to the right on state change." },
+      { "name": "progress-fade", "value": ".2s linear", "purpose": "Progress segment colour change." },
+      { "name": "reduced-motion", "value": "animation: none; transition: none", "purpose": "All motion disabled under prefers-reduced-motion." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "To-do Box",
+      "kind": "card",
+      "refersTo": "box-todo",
+      "description": "Red enamel box with dashed inner outline; whole box starts the task.",
+      "html": "<article class=\"ds-box ds-todo\"><button class=\"ds-main\"><h2>เปลี่ยนแอร์ห้อง 204</h2><p>09:00 · ชั้น 2</p></button></article>",
+      "css": ".ds-todo{position:relative;background:var(--red,#D6261E);color:#fff;border-radius:14px;font-size:1.0625rem;overflow:hidden}.ds-todo::before{content:'';position:absolute;inset:6px;border:2px dashed rgba(255,255,255,.8);border-radius:9px;pointer-events:none}.ds-todo h2{margin:0;font:700 1.5rem/1.25 Kanit,sans-serif}.ds-todo p{margin:.125rem 0 0}.ds-main{display:block;width:100%;min-height:5.75rem;padding:1.1rem 1.25rem;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}.ds-main:active{background:rgba(0,0,0,.12)}.ds-main:focus-visible{outline:4px solid #fff;outline-offset:-4px}"
+    },
+    {
+      "name": "Doing Box",
+      "kind": "card",
+      "refersTo": "box-doing",
+      "description": "Yellow enamel box with thick ink ring and hazard band; the only box with the swipe track.",
+      "html": "<article class=\"ds-doing\"><div class=\"ds-band\"></div><div class=\"ds-body\"><h2>ล้างคอยล์เย็น</h2><p>10:30</p></div></article>",
+      "css": ".ds-doing{background:#F5B800;color:#14181B;border:4px solid #14181B;border-radius:14px;overflow:hidden;font-size:1.0625rem}.ds-band{height:.875rem;background:repeating-linear-gradient(135deg,#14181B 0 .5rem,#F5B800 .5rem 1rem)}.ds-body{padding:.875rem 1rem 1rem}.ds-body h2{margin:0;font:700 1.5rem/1.25 Kanit,sans-serif}.ds-body p{margin:.125rem 0 0}"
+    },
+    {
+      "name": "Done Box",
+      "kind": "card",
+      "refersTo": "box-done",
+      "description": "Green enamel box with a tick and struck-through title.",
+      "html": "<article class=\"ds-done\"><h2>ตรวจแรงดันน้ำยา</h2></article>",
+      "css": ".ds-done{background:#17713D;color:#fff;border-radius:14px;padding:1rem 1.25rem;min-height:5rem;font-size:1.0625rem}.ds-done h2{margin:0;font:700 1.5rem/1.25 Kanit,sans-serif;text-decoration:line-through;text-decoration-thickness:.1em}"
+    },
+    {
+      "name": "Photo Button",
+      "kind": "button",
+      "refersTo": "button-photo",
+      "description": "Outlined ink button for attaching a photo.",
+      "html": "<button class=\"ds-photo\">แนบรูป</button>",
+      "css": ".ds-photo{display:inline-flex;align-items:center;gap:.5rem;min-height:3.5rem;padding:0 1.1rem;background:transparent;border:2px solid #14181B;border-radius:12px;color:#14181B;font:600 1rem Kanit,sans-serif;cursor:pointer}.ds-photo:active{background:rgba(20,24,27,.12)}.ds-photo:focus-visible{outline:4px solid #14181B;outline-offset:3px}"
+    },
+    {
+      "name": "Swipe Track",
+      "kind": "custom",
+      "refersTo": "swipe-track",
+      "description": "Ink pill with yellow thumb; drag or press Enter to finish a task.",
+      "html": "<div class=\"ds-track\"><span class=\"ds-lbl\">ลากเพื่อจบงาน</span><button class=\"ds-thumb\" aria-label=\"จบงาน\">&rsaquo;</button></div>",
+      "css": ".ds-track{position:relative;height:4rem;background:#14181B;border-radius:2rem;overflow:hidden}.ds-lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-left:3.5rem;font:700 1.1875rem Kanit,sans-serif;color:#F5B800}.ds-thumb{position:absolute;left:.25rem;top:.25rem;width:3.5rem;height:3.5rem;border:0;border-radius:50%;background:#F5B800;color:#14181B;font-size:1.5rem;cursor:grab}.ds-thumb:focus-visible{outline:3px solid #fff;outline-offset:0}"
+    },
+    {
+      "name": "Progress Strip",
+      "kind": "custom",
+      "refersTo": "box-todo",
+      "description": "One segment per task: white to-do, yellow doing, green done.",
+      "html": "<div class=\"ds-prog\"><i class=\"g\"></i><i class=\"y\"></i><i></i><i></i><i></i></div>",
+      "css": ".ds-prog{display:flex;gap:.375rem}.ds-prog i{flex:1;height:.875rem;border-radius:.4375rem;background:#fff;border:2px solid #14181B}.ds-prog .g{background:#17713D}.ds-prog .y{background:#F5B800}"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": "toast",
+      "description": "Ink bar with yellow undo action.",
+      "html": "<div class=\"ds-toast\"><span>จบงานแล้ว</span><button>เลิกทำ</button></div>",
+      "css": ".ds-toast{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:4rem;padding:.5rem .5rem .5rem 1.1rem;background:#14181B;color:#fff;border-radius:14px;font-size:1.0625rem}.ds-toast button{min-height:3.5rem;min-width:6rem;padding:0 1.25rem;background:#F5B800;color:#14181B;border:0;border-radius:10px;font:700 1rem Kanit,sans-serif;cursor:pointer}.ds-toast button:focus-visible{outline:4px solid #fff;outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Enamel Signboard",
+    "overview": "Hand-painted Thai shop and truck signboard enamel on a cool concrete-white ground. Each task is a sign that floods fully red, yellow or green; a state change wipes the next coat across it. The system refuses white cards with small status pills. It is flat, loud and legible in bright outdoor light, one-handed, with gloves.\n\nDensity is low and the targets are large: three to six full-width boxes on a single 30rem column. Lettering is Kanit, detail is Noto Sans Thai, and the whole hierarchy is three steps (date, task title, detail).",
+    "keyCharacteristics": [
+      "Full-box colour floods, never tinted cards or pills.",
+      "State is never colour alone: dashed inner outline (to-do), hazard band plus thick ink ring (doing), tick plus struck title (done), each with a Thai state word.",
+      "Flat. No shadows anywhere.",
+      "Large touch targets (3.5rem and up), 4px ink focus ring."
+    ],
+    "rules": [
+      { "name": "The Full Flood Rule", "body": "Status colour covers the whole box; it is never a pill, dot or left border.", "section": "colors" },
+      { "name": "The Never Colour Alone Rule", "body": "Every state carries a second, non-colour signal and a Thai word.", "section": "colors" },
+      { "name": "The Three Steps Rule", "body": "Date, task title, detail. Do not add a fourth size for headings or captions.", "section": "typography" },
+      { "name": "The Flat Enamel Rule", "body": "No box-shadow. Emphasis comes from ring, band and colour.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do flood the whole box with the state colour and add the non-colour signal (dashed outline, hazard band and ink ring, tick and strike).",
+      "Do use white text on red and green, ink text on yellow.",
+      "Do keep targets at least 3.5rem and focus rings at 4px ink (white on coloured fills).",
+      "Do keep copy in Thai."
+    ],
+    "donts": [
+      "Don't use white cards with small status pills.",
+      "Don't add shadows, gradients (other than the hazard stripe) or tinted pastel states.",
+      "Don't add a fourth type size or a decorative display face.",
+      "Don't show state by colour alone."
+    ]
+  }
+}

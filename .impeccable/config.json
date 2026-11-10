@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "sans thai\",system-ui,sans-serif",
+        "createdAt": "2026-11-10T06:15:18.975Z",
+        "reason": "false positive: the stack is 'Noto Sans Thai', system-ui, sans-serif; Noto Sans Thai is declared in DESIGN.md typography. Decided by assistant from evidence, not user confirmed."
+      }
+    ]
+  }
+}
