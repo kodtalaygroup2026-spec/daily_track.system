@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Track · หัวหน้า</title>
+<meta name="theme-color" content="#EDF0EE">
+<link rel="preload" href="fonts/kanit-700-thai.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="supervisor.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+</svg>
+
+<header class="bar">
+  <span class="brand">Daily Track</span>
+  <h1 id="date"></h1>
+  <p class="clock">เวลาในตัวอย่าง <b id="clock"></b>
+    <button type="button" id="plus30" class="ghost">+30 น.</button></p>
+  <button type="button" id="create" class="primary"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>สร้างภารกิจ</button>
+</header>
+
+<div class="layout">
+  <main>
+    <div class="tools">
+      <div class="seg" id="seg" role="group" aria-label="กรองตามสถานะ"></div>
+      <label class="sel">ช่าง
+        <select id="tech"></select>
+      </label>
+    </div>
+
+    <div class="tablewrap">
+      <table id="table">
+        <thead><tr>
+          <th scope="col" data-key="status" class="c-s"></th>
+          <th scope="col" data-key="time" class="c-t"></th>
+          <th scope="col" data-key="title"></th>
+          <th scope="col" data-key="tech" class="c-h"></th>
+          <th scope="col" class="c-p">รูป</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empty" id="empty" hidden></div>
+    </div>
+
+    <p class="note">
+      ข้อมูลตัวอย่าง · ยังไม่เชื่อมกับมือถือช่าง
+      <button type="button" id="reset">เริ่มตัวอย่างใหม่</button>
+      <button type="button" id="blank">ดูวันที่ไม่มีงาน</button>
+    </p>
+  </main>
+
+  <aside id="drawer" class="drawer" aria-label="รายละเอียดภารกิจ"></aside>
+</div>
+
+<dialog id="lightbox" aria-label="รูปที่แนบ">
+  <div id="lbBody"></div>
+  <p id="lbCap"></p>
+  <button type="button" id="lbClose" class="primary">ปิด</button>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<datalist id="places"></datalist>
+
+<script src="supervisor.js"></script>
+</body>
+</html>

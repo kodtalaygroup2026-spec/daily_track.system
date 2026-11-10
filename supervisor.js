@@ -1,0 +1,293 @@
+'use strict';
+// Prototype: sample data only, kept in this browser. Changes do not reach technician phones.
+const KEY = 'dailytrack.sup.v1';
+const NOW0 = 11 * 60 + 20; // the sample day is frozen at 11:20; "+30 น." moves it so the late rule can be seen
+const TECHS = ['สมชาย ป.', 'วิชัย ก.', 'ประเสริฐ ท.', 'อนุชา ส.', 'สุรชัย ม.', 'ธนากร พ.', 'ณัฐพล ว.', 'กิตติ ร.'];
+const PLACES = ['อาคาร A', 'อาคาร B', 'อาคาร C', 'อาคาร D', 'ลานจอดรถ', 'โรงงาน 1', 'โรงงาน 2', 'ห้องประชุม 2'];
+const COMMON = ['ล้างแอร์', 'ตรวจปั๊มน้ำ', 'เปลี่ยนหลอดไฟ', 'ตรวจสายไฟ', 'ซ่อมประตู'];
+const LABEL = { todo: 'รอทำ', doing: 'กำลังทำ', done: 'เสร็จ' };
+const ORDER = { todo: 0, doing: 1, done: 2 };
+const FILTERS = [['all', 'ทั้งหมด'], ['todo', 'รอทำ'], ['doing', 'กำลังทำ'], ['done', 'เสร็จ']];
+const HEADS = [['status', 'สถานะ'], ['time', 'เวลา'], ['title', 'ภารกิจ'], ['tech', 'ช่าง']];
+
+const T = (id, time, title, tech, place, status, photo) => ({ id, time, title, tech, place, status, photo: photo || null });
+const SAMPLE = () => ({
+  now: NOW0, nextId: 15,
+  tasks: [
+    T(1, '08:00', 'ล้างแอร์ ห้อง 302', 'สมชาย ป.', 'อาคาร B', 'done', 'a'),
+    T(2, '08:30', 'ตรวจถังดับเพลิง', 'สุรชัย ม.', 'อาคาร C', 'done', 'b'),
+    T(3, '09:00', 'ซ่อมมือจับประตู', 'กิตติ ร.', 'อาคาร B', 'done'),
+    T(4, '09:30', 'ซ่อมประตูเหล็ก', 'วิชัย ก.', 'อาคาร D', 'doing'),
+    T(5, '10:30', 'เปลี่ยนเบรกเกอร์', 'สมชาย ป.', 'ตู้ไฟชั้น 2 อาคาร A', 'doing'),
+    T(6, '11:00', 'เปลี่ยนหลอดไฟ', 'ประเสริฐ ท.', 'ลานจอดรถ', 'todo'),
+    T(7, '11:00', 'ตรวจแอร์', 'อนุชา ส.', 'ห้องประชุม 2', 'doing'),
+    T(8, '11:30', 'ตรวจตู้ควบคุม', 'สุรชัย ม.', 'อาคาร C', 'todo'),
+    T(9, '13:00', 'ตรวจปั๊มน้ำ', 'สมชาย ป.', 'โรงงาน 2', 'todo'),
+    T(10, '13:00', 'ตรวจระบบน้ำ', 'ณัฐพล ว.', 'อาคาร A', 'todo'),
+    T(11, '13:30', 'ซ่อมไฟทางเดิน', 'ธนากร พ.', 'ลานจอดรถ', 'todo'),
+    T(12, '14:00', 'ล้างแอร์ ห้อง 401', 'อนุชา ส.', 'อาคาร B', 'todo'),
+    T(13, '15:00', 'เช็คสายไฟชั้น 5', 'อนุชา ส.', 'อาคาร C', 'todo'),
+    T(14, '16:00', 'ตรวจมาตรวัดน้ำ', 'ประเสริฐ ท.', 'โรงงาน 1', 'todo'),
+  ],
+});
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const icon = (n) => `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const mins = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+
+// Synthetic sample photos, drawn here; every one is labelled "รูปตัวอย่าง" where it is shown.
+const PHOTOS = {
+  a: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 240'><rect width='320' height='240' fill='#C9D1CD'/><rect x='50' y='56' width='220' height='96' rx='10' fill='#14181B'/><rect x='66' y='72' width='188' height='14' rx='4' fill='#EDF0EE'/><circle cx='230' cy='120' r='14' fill='#17713D'/><rect x='80' y='170' width='160' height='10' rx='5' fill='#8A938E'/></svg>",
+  b: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 240'><rect width='320' height='240' fill='#C9D1CD'/><rect x='128' y='60' width='64' height='140' rx='14' fill='#D6261E'/><rect x='146' y='36' width='28' height='30' rx='6' fill='#14181B'/><rect x='170' y='44' width='36' height='8' rx='4' fill='#14181B'/><rect x='140' y='110' width='40' height='30' rx='4' fill='#EDF0EE'/></svg>",
+};
+const photoURI = (k) => 'data:image/svg+xml,' + encodeURIComponent(PHOTOS[k]);
+
+let S, toastTimer = null;
+const UI = { filter: 'all', tech: '', sort: { key: 'time', dir: 1 }, sel: null, mode: null, lastFocus: null };
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY));
+    if (d && Array.isArray(d.tasks)) { S = d; return; }
+  } catch (e) { /* storage unavailable: use the sample */ }
+  S = SAMPLE();
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } }
+
+function lateMins(t) { return t.status !== 'done' && S.now > mins(t.time) ? S.now - mins(t.time) : 0; }
+function fmtLate(m) { return m < 60 ? `เลย ${m} น.` : `เลย ${Math.floor(m / 60)} ชม.${m % 60 ? ' ' + (m % 60) + ' น.' : ''}`; }
+
+function visible() {
+  const { key, dir } = UI.sort;
+  const cmp = {
+    time: (a, b) => mins(a.time) - mins(b.time) || a.id - b.id,
+    status: (a, b) => ORDER[a.status] - ORDER[b.status] || mins(a.time) - mins(b.time),
+    title: (a, b) => a.title.localeCompare(b.title, 'th'),
+    tech: (a, b) => a.tech.localeCompare(b.tech, 'th') || mins(a.time) - mins(b.time),
+  }[key];
+  return S.tasks.filter((t) => (!UI.tech || t.tech === UI.tech) && (UI.filter === 'all' || t.status === UI.filter))
+    .sort((a, b) => cmp(a, b) * dir);
+}
+
+/* ---- static controls, built once so focus survives re-renders ---- */
+function buildControls() {
+  $('#seg').innerHTML = FILTERS.map(([k]) => `<button type="button" data-filter="${k}" aria-pressed="false"></button>`).join('');
+  $('#tech').innerHTML = `<option value="">ช่างทุกคน</option>` + TECHS.map((n) => `<option>${esc(n)}</option>`).join('');
+  $('#places').innerHTML = PLACES.map((p) => `<option value="${esc(p)}">`).join('');
+  document.querySelectorAll('th[data-key]').forEach((th) => {
+    const [, label] = HEADS.find(([k]) => k === th.dataset.key);
+    th.innerHTML = `<button type="button" data-sort="${th.dataset.key}">${label}<span class="dir"></span></button>`;
+  });
+}
+
+function renderChrome() {
+  const now = new Date();
+  const th = (o) => new Intl.DateTimeFormat('th-TH-u-ca-buddhist', o).format(now);
+  $('#date').textContent = th({ weekday: 'long' }) + ' ' + th({ day: 'numeric', month: 'short' });
+  $('#clock').textContent = hhmm(S.now);
+
+  const pool = S.tasks.filter((t) => !UI.tech || t.tech === UI.tech);
+  document.querySelectorAll('#seg button').forEach((b) => {
+    const k = b.dataset.filter;
+    const n = k === 'all' ? pool.length : pool.filter((t) => t.status === k).length;
+    b.textContent = `${FILTERS.find(([f]) => f === k)[1]} ${n}`;
+    b.setAttribute('aria-pressed', String(UI.filter === k));
+  });
+  document.querySelectorAll('th[data-key]').forEach((th) => {
+    const on = UI.sort.key === th.dataset.key;
+    th.setAttribute('aria-sort', on ? (UI.sort.dir > 0 ? 'ascending' : 'descending') : 'none');
+    th.querySelector('.dir').innerHTML = on ? icon(UI.sort.dir > 0 ? 'up' : 'down') : '';
+  });
+}
+
+function renderRows() {
+  const rows = visible();
+  const empty = $('#empty');
+  const none = !S.tasks.length;
+  $('#table').hidden = !rows.length;
+  empty.hidden = !!rows.length;
+  if (!rows.length) {
+    empty.innerHTML = none
+      ? `<h2>วันนี้ยังไม่มีภารกิจ</h2><p>กด “สร้างภารกิจ” เพื่อมอบหมายงานแรกให้ช่าง</p><button type="button" class="primary" data-act="create">${icon('plus')}สร้างภารกิจ</button>`
+      : `<h2>ไม่พบภารกิจตามตัวกรอง</h2><p>ลองเลือกสถานะหรือช่างอื่น</p><button type="button" class="secondary" data-act="clear">ล้างตัวกรอง</button>`;
+  }
+  $('#rows').innerHTML = rows.map((t) => {
+    const late = lateMins(t);
+    const stat = `<td class="s" data-s="${t.status}"><span>${t.status === 'done' ? icon('check') : ''}${LABEL[t.status]}</span></td>`;
+    const time = late ? `<td class="late">${t.time}<small>${fmtLate(late)}</small></td>` : `<td>${t.time}</td>`;
+    const shot = t.photo
+      ? `<button type="button" class="shot" data-shot="${t.id}" aria-label="ดูรูปของ ${esc(t.title)}"><img src="${photoURI(t.photo)}" alt=""></button>`
+      : `<span class="none" aria-label="ไม่มีรูป">—</span>`;
+    return `<tr data-id="${t.id}" data-sel="${UI.sel === t.id}" class="${t.status === 'done' ? 'is-done' : ''}">${stat}${time}
+      <td class="task"><button type="button" class="open" data-open="${t.id}"${UI.sel === t.id ? ' aria-current="true"' : ''}>${esc(t.title)}</button><p>${esc(t.place)}</p></td>
+      <td class="c-h">${esc(t.tech)}</td><td class="c-p">${shot}</td></tr>`;
+  }).join('');
+}
+
+/* ---- drawer ---- */
+const field = (id, label, control, err) =>
+  `<div class="field"${err ? ' data-err' : ''}><label for="${id}">${label}</label>${control}${err ? `<p class="err" id="e-${id}" role="alert">${err}</p>` : ''}</div>`;
+
+function formHTML(t, errs = {}, vals = {}, locked = false) {
+  const v = (k) => esc(vals[k] ?? (t ? t[k] : ''));
+  const d = locked ? ' disabled' : '';
+  const inv = (k) => (errs[k] ? ` aria-invalid="true" aria-describedby="e-f-${k}"` : '');
+  const techOpts = (t ? '' : `<option value="">เลือกช่าง</option>`) +
+    TECHS.map((n) => `<option${n === (vals.tech ?? (t && t.tech)) ? ' selected' : ''}>${esc(n)}</option>`).join('');
+  const quick = t ? '' : `<div class="quick" role="group" aria-label="ภารกิจที่ใช้บ่อย">${COMMON.map((c) => `<button type="button" data-quick="${esc(c)}">${esc(c)}</button>`).join('')}</div>`;
+  return field('f-title', 'ภารกิจ', `<input type="text" id="f-title" name="title" value="${v('title')}" autocomplete="off"${d}${inv('title')}>${quick}`, errs.title) +
+    field('f-tech', 'ช่าง', `<select id="f-tech" name="tech"${d}${inv('tech')}>${techOpts}</select>`, errs.tech) +
+    field('f-time', 'เวลา', `<input type="time" id="f-time" name="time" value="${vals.time ?? (t ? t.time : hhmm(Math.ceil((S.now + 1) / 30) * 30))}"${d}${inv('time')}>`, errs.time) +
+    field('f-place', 'สถานที่', `<input type="text" id="f-place" name="place" list="places" value="${v('place')}" autocomplete="off"${d}${inv('place')}>`, errs.place);
+}
+
+function subText(t) {
+  const late = lateMins(t);
+  return `${t.time} · ${esc(t.place)}${late ? ' · ' + fmtLate(late) : ''}`;
+}
+// the clock moved: refresh the late text without rebuilding the form (keeps unsaved input)
+function refreshSub() {
+  const t = UI.mode === 'view' && S.tasks.find((x) => x.id === UI.sel);
+  const el = $('#dsub');
+  if (t && el) el.innerHTML = subText(t);
+}
+
+function renderDrawer(errs, vals) {
+  const dr = $('#drawer');
+  dr.dataset.open = String(!!UI.mode);
+  const close = `<button type="button" class="x" data-act="close" aria-label="ปิด">${icon('close')}</button>`;
+  if (UI.mode === 'create') {
+    dr.innerHTML = `<form id="form" novalidate><div class="dhead"><h2 tabindex="-1">สร้างภารกิจ</h2>${close}</div>
+      ${formHTML(null, errs, vals)}
+      <div class="actions"><button type="submit" class="primary">มอบหมาย</button><button type="button" class="secondary" data-act="close">ยกเลิก</button></div></form>`;
+    return;
+  }
+  const t = S.tasks.find((x) => x.id === UI.sel);
+  if (!t) {
+    dr.innerHTML = `<div class="prompt"><h2>เลือกภารกิจ</h2><p class="sub">แตะแถวในตารางเพื่อดูรายละเอียด แก้ไข หรือย้ายไปให้ช่างคนอื่น</p>
+      <button type="button" class="primary" data-act="create">${icon('plus')}สร้างภารกิจ</button></div>`;
+    return;
+  }
+  const locked = t.status === 'done';
+  const photo = t.photo
+    ? `<div class="photo"><span class="lab">รูปที่แนบ</span><button type="button" data-shot="${t.id}" aria-label="ดูรูปใหญ่ของ ${esc(t.title)}"><img src="${photoURI(t.photo)}" alt="รูปตัวอย่างของ ${esc(t.title)}"></button><small>รูปตัวอย่าง · แตะเพื่อดูรูปใหญ่</small></div>`
+    : `<div class="photo"><span class="lab">รูปที่แนบ</span><div class="noimg">ยังไม่มีรูปแนบ</div></div>`;
+  dr.innerHTML = `<form id="form" novalidate><div class="dhead"><div><h2 tabindex="-1">${esc(t.title)}</h2>
+      <p class="sub" id="dsub">${subText(t)}</p></div>${close}</div>
+    <p class="stat" data-s="${t.status}">${LABEL[t.status]}</p>
+    ${formHTML(t, errs, vals, locked)}${photo}
+    ${locked ? '<p class="lock">งานเสร็จแล้ว แก้ไขไม่ได้</p>' : ''}
+    <div class="actions">${locked ? '' : '<button type="submit" class="primary">บันทึก</button>'}<button type="button" class="secondary" data-act="close">ปิด</button></div></form>`;
+}
+
+function render() { renderChrome(); renderRows(); renderDrawer(); $('#plus30').disabled = S.now >= 23 * 60 + 30; }
+
+/* ---- actions ---- */
+const narrow = () => matchMedia('(max-width: 1099px)').matches;
+
+function open(id, from) {
+  UI.sel = id; UI.mode = 'view'; UI.lastFocus = from || null;
+  renderRows(); renderDrawer();
+  // keyboard opens (and any open on a narrow screen) move focus into the drawer; closing returns it to the row
+  if (narrow() || from === 'row') $('#drawer h2').focus();
+}
+function startCreate() {
+  UI.sel = null; UI.mode = 'create'; UI.lastFocus = 'create';
+  renderRows(); renderDrawer();
+  $('#f-title').focus();
+}
+function closeDrawer() {
+  const id = UI.sel, from = UI.lastFocus;
+  UI.sel = null; UI.mode = null;
+  renderRows(); renderDrawer();
+  const back = id && document.querySelector(`[data-open="${id}"]`);
+  (back || (from === 'create' ? $('#create') : null) || $('#create')).focus();
+}
+// the live region stays in the DOM (hidden by CSS class only) so screen readers announce the text change
+function toast(msg) {
+  const el = $('#toast');
+  el.classList.remove('show');
+  clearTimeout(toastTimer);
+  setTimeout(() => { el.textContent = msg; el.classList.add('show'); }, 50);
+  toastTimer = setTimeout(() => { el.classList.remove('show'); }, 4500);
+}
+
+function submit(e) {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const vals = { title: (f.get('title') || '').trim(), tech: f.get('tech') || '', time: f.get('time') || '', place: (f.get('place') || '').trim() };
+  const errs = {};
+  if (!vals.title) errs.title = 'กรุณาระบุชื่อภารกิจ';
+  if (!vals.tech) errs.tech = 'กรุณาเลือกช่าง';
+  if (!vals.time) errs.time = 'กรุณาระบุเวลา';
+  if (!vals.place) errs.place = 'กรุณาระบุสถานที่';
+  const bad = Object.keys(errs)[0];
+  if (bad) { renderDrawer(errs, vals); $('#f-' + bad).focus(); return; }
+
+  if (UI.mode === 'create') {
+    const t = T(S.nextId++, vals.time, vals.title, vals.tech, vals.place, 'todo');
+    S.tasks.push(t);
+    if (UI.filter !== 'all' && UI.filter !== 'todo') UI.filter = 'all';
+    if (UI.tech && UI.tech !== t.tech) { UI.tech = ''; $('#tech').value = ''; }
+    UI.sel = t.id; UI.mode = 'view';
+    save(); render(); $('#drawer h2').focus();
+    toast(`มอบหมาย “${t.title}” ให้ ${t.tech} แล้ว`);
+  } else {
+    const t = S.tasks.find((x) => x.id === UI.sel);
+    const moved = t.tech !== vals.tech;
+    Object.assign(t, vals);
+    save(); render(); $('#drawer h2').focus();
+    toast(moved ? `ย้าย “${t.title}” ไปให้ ${t.tech} แล้ว` : `บันทึก “${t.title}” แล้ว`);
+  }
+}
+
+function openLightbox(id) {
+  const t = S.tasks.find((x) => x.id === id);
+  if (!t || !t.photo) return;
+  $('#lbBody').innerHTML = `<img src="${photoURI(t.photo)}" alt="รูปตัวอย่างของ ${esc(t.title)}">`;
+  $('#lbCap').textContent = `รูปตัวอย่าง · ${t.title} · ${t.tech}`;
+  $('#lightbox').showModal();
+}
+
+/* ---- events ---- */
+document.addEventListener('click', (e) => {
+  const q = (s) => e.target.closest(s);
+  let el;
+  if ((el = q('[data-shot]'))) { e.stopPropagation(); return openLightbox(Number(el.dataset.shot)); }
+  if ((el = q('[data-sort]'))) {
+    const k = el.dataset.sort;
+    UI.sort = UI.sort.key === k ? { key: k, dir: -UI.sort.dir } : { key: k, dir: 1 };
+    renderChrome(); return renderRows();
+  }
+  if ((el = q('[data-filter]'))) { UI.filter = el.dataset.filter; renderChrome(); return renderRows(); }
+  if ((el = q('[data-quick]'))) { $('#f-title').value = el.dataset.quick; return $('#f-tech').focus(); }
+  if ((el = q('[data-act]'))) {
+    const a = el.dataset.act;
+    if (a === 'create') return startCreate();
+    if (a === 'close') return closeDrawer();
+    if (a === 'clear') { UI.filter = 'all'; UI.tech = ''; $('#tech').value = ''; renderChrome(); renderRows(); return document.querySelector('#seg button').focus(); }
+  }
+  if ((el = q('tbody tr'))) { const id = Number(el.dataset.id); open(id, e.target.closest('.open') ? 'row' : null); }
+});
+
+$('#create').addEventListener('click', startCreate);
+$('#tech').addEventListener('change', (e) => { UI.tech = e.target.value; renderChrome(); renderRows(); });
+$('#drawer').addEventListener('submit', submit);
+$('#plus30').addEventListener('click', () => {
+  S.now = Math.min(S.now + 30, 23 * 60 + 30); // the sample day ends at 23:30
+  $('#plus30').disabled = S.now >= 23 * 60 + 30;
+  save(); renderChrome(); renderRows(); refreshSub(); toast(`เวลาในตัวอย่าง ${hhmm(S.now)}`);
+});
+function restart(state) {
+  S = state;
+  Object.assign(UI, { filter: 'all', tech: '', sort: { key: 'time', dir: 1 }, sel: null, mode: null });
+  $('#tech').value = ''; save(); render();
+}
+$('#reset').addEventListener('click', () => restart(SAMPLE()));
+$('#blank').addEventListener('click', () => restart({ now: NOW0, nextId: 1, tasks: [] }));
+$('#lbClose').addEventListener('click', () => $('#lightbox').close());
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && UI.mode && !$('#lightbox').open) closeDrawer(); });
+
+buildControls(); load(); render();
