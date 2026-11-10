@@ -1,31 +1,194 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-10T00:00:00Z",
-  "title": "Design System: Daily Track (Technician view)",
+  "generatedAt": "2026-11-10T12:00:00Z",
+  "title": "Design System: Daily Track",
   "extensions": {
     "colorMeta": {
-      "ink": { "role": "neutral", "displayName": "Signboard Ink", "canonical": "#14181B", "tonalRamp": ["#14181B", "#262C30", "#3F4945", "#5E6A65", "#8A948F", "#B4BCB8", "#D6DBD8", "#EDF0EE"] },
-      "ground": { "role": "neutral", "displayName": "Concrete Ground", "canonical": "#EDF0EE", "tonalRamp": ["#3F4945", "#66716C", "#8D9792", "#B0B8B4", "#C9CFCC", "#DCE1DE", "#EDF0EE", "#F7F9F8"] },
-      "quiet-ink": { "role": "neutral", "displayName": "Quiet Ink", "canonical": "#3F4945", "tonalRamp": ["#14181B", "#222927", "#2E3633", "#3F4945", "#5A6560", "#7A8580", "#9DA6A2", "#C3C9C6"] },
-      "enamel-red": { "role": "primary", "displayName": "Enamel Red", "canonical": "#D6261E", "tonalRamp": ["#4A0E0B", "#701510", "#951C16", "#B8221A", "#D6261E", "#E8574F", "#F08F89", "#F9CBC8"] },
-      "enamel-yellow": { "role": "secondary", "displayName": "Enamel Yellow", "canonical": "#F5B800", "tonalRamp": ["#4D3A00", "#755800", "#9C7600", "#C79600", "#F5B800", "#F9CB47", "#FBDD85", "#FDEFC4"] },
-      "enamel-green": { "role": "tertiary", "displayName": "Enamel Green", "canonical": "#17713D", "tonalRamp": ["#06240F", "#0B3A1E", "#10502B", "#17713D", "#2A9156", "#5BB383", "#98D2B1", "#D1ECDC"] },
-      "white": { "role": "neutral", "displayName": "White", "canonical": "#FFFFFF", "tonalRamp": ["#14181B", "#4A4F52", "#7C8184", "#A8ACAE", "#C8CBCC", "#E0E2E3", "#F0F1F1", "#FFFFFF"] }
+      "ink": {
+        "role": "neutral",
+        "displayName": "Signboard Ink",
+        "canonical": "#14181B",
+        "tonalRamp": [
+          "#14181B",
+          "#262C30",
+          "#3F4945",
+          "#5E6A65",
+          "#8A948F",
+          "#B4BCB8",
+          "#D6DBD8",
+          "#EDF0EE"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Concrete Ground",
+        "canonical": "#EDF0EE",
+        "tonalRamp": [
+          "#3F4945",
+          "#66716C",
+          "#8D9792",
+          "#B0B8B4",
+          "#C9CFCC",
+          "#DCE1DE",
+          "#EDF0EE",
+          "#F7F9F8"
+        ]
+      },
+      "quiet-ink": {
+        "role": "neutral",
+        "displayName": "Quiet Ink",
+        "canonical": "#3F4945",
+        "tonalRamp": [
+          "#14181B",
+          "#222927",
+          "#2E3633",
+          "#3F4945",
+          "#5A6560",
+          "#7A8580",
+          "#9DA6A2",
+          "#C3C9C6"
+        ]
+      },
+      "enamel-red": {
+        "role": "primary",
+        "displayName": "Enamel Red",
+        "canonical": "#D6261E",
+        "tonalRamp": [
+          "#4A0E0B",
+          "#701510",
+          "#951C16",
+          "#B8221A",
+          "#D6261E",
+          "#E8574F",
+          "#F08F89",
+          "#F9CBC8"
+        ]
+      },
+      "enamel-yellow": {
+        "role": "secondary",
+        "displayName": "Enamel Yellow",
+        "canonical": "#F5B800",
+        "tonalRamp": [
+          "#4D3A00",
+          "#755800",
+          "#9C7600",
+          "#C79600",
+          "#F5B800",
+          "#F9CB47",
+          "#FBDD85",
+          "#FDEFC4"
+        ]
+      },
+      "enamel-green": {
+        "role": "tertiary",
+        "displayName": "Enamel Green",
+        "canonical": "#17713D",
+        "tonalRamp": [
+          "#06240F",
+          "#0B3A1E",
+          "#10502B",
+          "#17713D",
+          "#2A9156",
+          "#5BB383",
+          "#98D2B1",
+          "#D1ECDC"
+        ]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#14181B",
+          "#4A4F52",
+          "#7C8184",
+          "#A8ACAE",
+          "#C8CBCC",
+          "#E0E2E3",
+          "#F0F1F1",
+          "#FFFFFF"
+        ]
+      }
     },
     "typographyMeta": {
-      "display": { "displayName": "Date", "purpose": "The Thai date, one per screen." },
-      "title": { "displayName": "Task title", "purpose": "Task titles, weekday, empty and all-done headings." },
-      "body": { "displayName": "Detail", "purpose": "Meta, counts, toast text." },
-      "label": { "displayName": "State word / button", "purpose": "State words and button labels in Kanit." }
+      "display": {
+        "displayName": "Date",
+        "purpose": "The Thai date, one per screen."
+      },
+      "title": {
+        "displayName": "Task title",
+        "purpose": "Task titles, weekday, empty and all-done headings."
+      },
+      "body": {
+        "displayName": "Detail",
+        "purpose": "Meta, counts, toast text."
+      },
+      "label": {
+        "displayName": "State word / button",
+        "purpose": "State words and button labels in Kanit."
+      },
+      "supervisor-date": {
+        "displayName": "Supervisor date",
+        "purpose": "Thai date in the supervisor top bar, 2.25rem."
+      },
+      "supervisor-title": {
+        "displayName": "Supervisor title",
+        "purpose": "Wordmark, task-title buttons, drawer and empty headings, 1.25rem."
+      },
+      "supervisor-detail": {
+        "displayName": "Supervisor detail",
+        "purpose": "Body, place and meta text, 1rem."
+      }
     },
     "shadows": [],
     "motion": [
-      { "name": "ease", "value": "cubic-bezier(.16, 1, .3, 1)", "purpose": "Wipe, fill and thumb movement." },
-      { "name": "unwipe", "value": ".45s", "purpose": "Previous coat slides off to the right on state change." },
-      { "name": "progress-fade", "value": ".2s linear", "purpose": "Progress segment colour change." },
-      { "name": "reduced-motion", "value": "animation: none; transition: none", "purpose": "All motion disabled under prefers-reduced-motion." }
+      {
+        "name": "ease",
+        "value": "cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Wipe, fill and thumb movement."
+      },
+      {
+        "name": "unwipe",
+        "value": ".45s",
+        "purpose": "Previous coat slides off to the right on state change."
+      },
+      {
+        "name": "progress-fade",
+        "value": ".2s linear",
+        "purpose": "Progress segment colour change."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none; transition: none",
+        "purpose": "All motion disabled under prefers-reduced-motion."
+      },
+      {
+        "name": "toast-fade",
+        "value": ".15s linear",
+        "purpose": "Supervisor toast opacity; the live region is always rendered."
+      }
     ],
-    "breakpoints": []
+    "breakpoints": [
+      {
+        "name": "supervisor-tablet",
+        "value": "max-width 1099px: one column, drawer becomes a fixed right panel with close button"
+      },
+      {
+        "name": "supervisor-narrow",
+        "value": "max-width 699px: photo column hidden"
+      },
+      {
+        "name": "supervisor-drawer-column",
+        "value": "26rem, sticky with max-height calc(100vh - 2rem) at 1100px and up"
+      }
+    ],
+    "layoutTokens": [
+      {
+        "name": "pad",
+        "value": "clamp(1rem, 2.2vw, 2rem)",
+        "purpose": "Supervisor side padding."
+      }
+    ]
   },
   "components": [
     {
@@ -83,34 +246,141 @@
       "description": "Ink bar with yellow undo action.",
       "html": "<div class=\"ds-toast\"><span>จบงานแล้ว</span><button>เลิกทำ</button></div>",
       "css": ".ds-toast{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:4rem;padding:.5rem .5rem .5rem 1.1rem;background:#14181B;color:#fff;border-radius:14px;font-size:1.0625rem}.ds-toast button{min-height:3.5rem;min-width:6rem;padding:0 1.25rem;background:#F5B800;color:#14181B;border:0;border-radius:10px;font:700 1rem Kanit,sans-serif;cursor:pointer}.ds-toast button:focus-visible{outline:4px solid #fff;outline-offset:3px}"
+    },
+    {
+      "name": "Status Cells",
+      "kind": "custom",
+      "refersTo": "cell-status-todo",
+      "description": "Supervisor table status cells: whole cell flooded with its cue (dashed inset, hazard strip, tick) and a Thai word; late time cell flooded ink with yellow text.",
+      "html": "<table class=\"ds-t\"><tr><td class=\"ds-s todo\"><span>ยังไม่เริ่ม</span></td><td class=\"ds-s doing\"><span>กำลังทำ</span></td><td class=\"ds-s done\"><span>&#10003; เสร็จ</span></td><td class=\"ds-late\">10:00<small>เกิน 20 นาที</small></td></tr></table>",
+      "css": ".ds-t{border-collapse:collapse}.ds-t td{height:4.25rem;padding:0 1rem}.ds-s{position:relative;isolation:isolate;font:700 1rem Kanit,sans-serif;color:#fff}.ds-s.todo{background:#D6261E}.ds-s.todo::before{content:\"\";position:absolute;inset:5px;z-index:-1;border:2px dashed rgba(255,255,255,.8);border-radius:10px}.ds-s.doing{background:#F5B800;color:#14181B}.ds-s.doing::before{content:\"\";position:absolute;inset:0 0 auto 0;height:.5rem;z-index:-1;background:repeating-linear-gradient(135deg,#14181B 0 .375rem,#F5B800 .375rem .75rem)}.ds-s.done{background:#17713D}.ds-late{background:#14181B;color:#F5B800;font:700 1rem Kanit,sans-serif}.ds-late small{display:block;white-space:nowrap}"
+    },
+    {
+      "name": "Filter Group",
+      "kind": "chip",
+      "refersTo": "filter-segment",
+      "description": "Segmented status filter: ink background, 2px gaps, pressed button floods ink.",
+      "html": "<div class=\"ds-seg\"><button aria-pressed=\"true\">ทั้งหมด 14</button><button aria-pressed=\"false\">ยังไม่เริ่ม 5</button></div>",
+      "css": ".ds-seg{display:flex;gap:2px;border:2px solid #14181B;border-radius:12px;overflow:hidden;background:#14181B}.ds-seg button{min-height:3.25rem;padding:0 1.1rem;background:#fff;border:0;font:700 1rem Kanit,sans-serif;color:#14181B;cursor:pointer}.ds-seg button[aria-pressed=true]{background:#14181B;color:#fff}.ds-seg button:focus-visible{outline:4px solid #14181B;outline-offset:-6px}.ds-seg button[aria-pressed=true]:focus-visible{outline-color:#F5B800}"
+    },
+    {
+      "name": "Sortable Header",
+      "kind": "nav",
+      "refersTo": "table-wrap",
+      "description": "Table header button with aria-sort; ground fill and 2px ink rule.",
+      "html": "<table><thead><tr><th class=\"ds-th\" aria-sort=\"ascending\"><button>เวลา</button></th></tr></thead></table>",
+      "css": ".ds-th{background:#EDF0EE;border-bottom:2px solid #14181B;padding:0;text-align:left}.ds-th button{width:100%;min-height:3rem;padding:0 1rem;background:none;border:0;font:700 1rem Kanit,sans-serif;text-align:left;cursor:pointer}.ds-th button:focus-visible{outline:4px solid #14181B;outline-offset:-4px}"
+    },
+    {
+      "name": "Primary Button (supervisor)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ink fill, white Kanit label; press goes quiet ink.",
+      "html": "<button class=\"ds-pri\">สร้างภารกิจ</button>",
+      "css": ".ds-pri{min-height:3.5rem;padding:0 1.5rem;background:#14181B;color:#fff;border:0;border-radius:12px;font:700 1rem Kanit,sans-serif;cursor:pointer}.ds-pri:active{background:#3F4945}.ds-pri:focus-visible{outline:4px solid #14181B;outline-offset:3px}"
+    },
+    {
+      "name": "Secondary and Ghost Buttons",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Outlined 2px ink buttons; secondary 3.5rem, ghost 2.75rem.",
+      "html": "<button class=\"ds-sec\">ยกเลิก</button> <button class=\"ds-ghost\">+30 น.</button>",
+      "css": ".ds-sec{min-height:3.5rem;padding:0 1.5rem;background:transparent;border:2px solid #14181B;border-radius:12px;font:700 1rem Kanit,sans-serif;color:#14181B;cursor:pointer}.ds-ghost{min-height:2.75rem;padding:0 .875rem;background:transparent;border:2px solid #14181B;border-radius:10px;font:700 1rem Kanit,sans-serif;color:#14181B;cursor:pointer}.ds-sec:focus-visible,.ds-ghost:focus-visible{outline:4px solid #14181B;outline-offset:3px}"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Drawer field: 3.25rem, 2px ink border, 12px radius; 4px border on error, dashed ground when disabled.",
+      "html": "<div class=\"ds-f\"><label for=\"a\">ชื่อภารกิจ</label><input id=\"a\" type=\"text\"></div><div class=\"ds-f err\"><label for=\"b\">ช่าง</label><input id=\"b\" type=\"text\"><p>กรุณาเลือกช่าง</p></div><div class=\"ds-f\"><label for=\"c\">เวลา</label><input id=\"c\" type=\"text\" disabled></div>",
+      "css": ".ds-f{margin-top:1rem}.ds-f label{display:block;margin-bottom:.375rem;font:700 1rem Kanit,sans-serif}.ds-f input{width:100%;min-height:3.25rem;padding:0 1rem;background:#fff;border:2px solid #14181B;border-radius:12px;font:500 1rem Noto Sans Thai,sans-serif}.ds-f input:focus-visible{outline:4px solid #14181B;outline-offset:3px}.ds-f.err input{border-width:4px}.ds-f p{margin:.375rem 0 0;color:#D6261E;font-weight:700}.ds-f input:disabled{background:#EDF0EE;color:#3F4945;border-style:dashed;cursor:not-allowed}"
+    },
+    {
+      "name": "Quick Pick",
+      "kind": "chip",
+      "refersTo": "quick-pick",
+      "description": "Create-mode shortcut buttons under the title field.",
+      "html": "<button class=\"ds-q\">ล้างแอร์</button>",
+      "css": ".ds-q{min-height:2.75rem;padding:0 .875rem;background:#fff;border:2px solid #14181B;border-radius:10px;font:600 1rem Kanit,sans-serif;color:#14181B;cursor:pointer}.ds-q:active{background:#EDF0EE}.ds-q:focus-visible{outline:4px solid #14181B;outline-offset:3px}"
+    },
+    {
+      "name": "Drawer",
+      "kind": "card",
+      "refersTo": "drawer",
+      "description": "Task detail panel: white, 2px ink border, 14px radius, status block on top; sticky at 1100px and up, fixed side panel below.",
+      "html": "<aside class=\"ds-d\"><h2>เปลี่ยนแอร์ห้อง 204</h2><p class=\"sub\">09:00 · ชั้น 2</p><p class=\"ds-stat\">กำลังทำ</p></aside>",
+      "css": ".ds-d{background:#fff;border:2px solid #14181B;border-radius:14px;padding:1.25rem;max-width:26rem;color:#14181B}.ds-d h2{margin:0;font:700 1.25rem/1.25 Kanit,sans-serif}.ds-d .sub{margin:.25rem 0 0;color:#3F4945}.ds-stat{display:flex;align-items:center;margin:1rem 0 0;min-height:3rem;padding:0 1rem;border-radius:12px;background:#F5B800;color:#14181B;font:700 1rem Kanit,sans-serif}"
+    },
+    {
+      "name": "Photo Thumbnail",
+      "kind": "custom",
+      "refersTo": "drawer",
+      "description": "Row thumbnail (3.25rem by 2.5rem, 10px, 2px ink border) that opens the lightbox dialog.",
+      "html": "<button class=\"ds-shot\" aria-label=\"ดูรูป\"></button>",
+      "css": ".ds-shot{display:block;width:3.25rem;height:2.5rem;padding:0;border:2px solid #14181B;border-radius:10px;overflow:hidden;background:#EDF0EE;cursor:pointer}.ds-shot:focus-visible{outline:4px solid #14181B;outline-offset:3px}"
+    },
+    {
+      "name": "Toast (supervisor)",
+      "kind": "custom",
+      "refersTo": "toast-supervisor",
+      "description": "Always-rendered live region, fixed bottom-centre, fades with 0.15s linear.",
+      "html": "<div class=\"ds-st\" role=\"status\" aria-live=\"polite\">บันทึกแล้ว</div>",
+      "css": ".ds-st{display:inline-block;padding:1rem 1.5rem;background:#14181B;color:#fff;border-radius:14px;font-weight:700}"
     }
   ],
   "narrative": {
     "northStar": "The Enamel Signboard",
-    "overview": "Hand-painted Thai shop and truck signboard enamel on a cool concrete-white ground. Each task is a sign that floods fully red, yellow or green; a state change wipes the next coat across it. The system refuses white cards with small status pills. It is flat, loud and legible in bright outdoor light, one-handed, with gloves.\n\nDensity is low and the targets are large: three to six full-width boxes on a single 30rem column. Lettering is Kanit, detail is Noto Sans Thai, and the whole hierarchy is three steps (date, task title, detail).",
+    "overview": "Hand-painted Thai shop and truck signboard enamel on a cool concrete-white ground. Each task is a sign that floods fully red, yellow or green; a state change wipes the next coat across it. The system refuses white cards with small status pills. It is flat, loud and legible in bright outdoor light, one-handed, with gloves.\n\nTwo surfaces share this one world. The technician view is a phone: density is low and the targets are large, three to six full-width boxes on a single 30rem column. The supervisor view is a desktop and tablet screen: a sortable task table beside a detail drawer, for one supervisor overseeing several technicians. The table is the familiar tool; the world enters as flooded status cells and an ink-flooded late cell, not as white rows with small pills. Lettering is Kanit, detail is Noto Sans Thai, and each surface's hierarchy is three steps (date, task title, detail).",
     "keyCharacteristics": [
       "Full-box colour floods, never tinted cards or pills.",
       "State is never colour alone: dashed inner outline (to-do), hazard band plus thick ink ring (doing), tick plus struck title (done), each with a Thai state word.",
       "Flat. No shadows anywhere.",
-      "Large touch targets (3.5rem and up), 4px ink focus ring."
+      "Large touch targets (3.5rem and up on the phone; 3.25rem fields and filters, 3.5rem primary actions on the supervisor surface), 4px ink focus ring on both.",
+      "The supervisor table floods the status cell, not the row; late is a flooded ink cell, never a pill."
     ],
     "rules": [
-      { "name": "The Full Flood Rule", "body": "Status colour covers the whole box; it is never a pill, dot or left border.", "section": "colors" },
-      { "name": "The Never Colour Alone Rule", "body": "Every state carries a second, non-colour signal and a Thai word.", "section": "colors" },
-      { "name": "The Three Steps Rule", "body": "Date, task title, detail. Do not add a fourth size for headings or captions.", "section": "typography" },
-      { "name": "The Flat Enamel Rule", "body": "No box-shadow. Emphasis comes from ring, band and colour.", "section": "elevation" }
+      {
+        "name": "The Full Flood Rule",
+        "body": "Status colour covers the whole box; it is never a pill, dot or left border.",
+        "section": "colors"
+      },
+      {
+        "name": "The Never Colour Alone Rule",
+        "body": "Every state carries a second, non-colour signal and a Thai word.",
+        "section": "colors"
+      },
+      {
+        "name": "The Full Flood Table Rule",
+        "section": "colors",
+        "body": "The Full Flood rule applied to a table: the whole status cell (td.s) is flooded and carries its cue and Thai word. Cues: red has an inset 2px dashed white outline, yellow a 0.5rem ink hazard strip along the top, green a tick. A late task floods its time cell ink with yellow text and a Thai late-duration line. Late is never a pill, dot or text colour on white. Row hover and selection tint (ground) skip the flooded cells."
+      },
+      {
+        "name": "The Three Steps Rule",
+        "body": "Date, task title, detail. Do not add a fourth size for headings or captions. The rule holds per surface: technician 3.5rem / 1.5rem / 1.0625rem, supervisor 2.25rem / 1.25rem / 1rem. Never mix the two scales on one surface.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Enamel Rule",
+        "body": "No box-shadow. Emphasis comes from ring, band and colour.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do flood the whole box with the state colour and add the non-colour signal (dashed outline, hazard band and ink ring, tick and strike).",
       "Do use white text on red and green, ink text on yellow.",
       "Do keep targets at least 3.5rem and focus rings at 4px ink (white on coloured fills).",
-      "Do keep copy in Thai."
+      "Do keep copy in Thai.",
+      "Do flood the whole status cell in the table, and the whole time cell in ink for late tasks.",
+      "Do keep the three-step scale within each surface (technician 3.5 / 1.5 / 1.0625rem, supervisor 2.25 / 1.25 / 1rem).",
+      "Do use 2px ink borders, 12px radius on controls, 14px on containers, and let errors thicken the border to 4px."
     ],
     "donts": [
       "Don't use white cards with small status pills.",
       "Don't add shadows, gradients (other than the hazard stripe) or tinted pastel states.",
       "Don't add a fourth type size or a decorative display face.",
-      "Don't show state by colour alone."
+      "Don't show state by colour alone.",
+      "Don't render supervisor status or lateness as a pill, dot, coloured text on a white row, or left border.",
+      "Don't carry technician sizes onto the supervisor surface or the reverse."
     ]
   }
 }
