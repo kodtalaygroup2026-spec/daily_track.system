@@ -151,6 +151,7 @@ h1, h2, p { margin: 0; }
 .empty p { margin-top: .5rem; color: var(--quiet); }
 
 .note { margin-top: 1.5rem; font-size: 1.0625rem; color: var(--quiet); display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; }
+.note a { display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--ink); text-underline-offset: .2em; }
 .note button { min-height: 2.75rem; padding: 0; background: none; border: 0; color: var(--ink); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
 
 .toast {
