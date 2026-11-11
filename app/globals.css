@@ -1,5 +1,7 @@
 @import './fonts.css';
 
+/* page-level rules the static site kept on <html> and <body> */
+html { scrollbar-color: #14181B #EDF0EE; color-scheme: light; -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; background: #EDF0EE; }
 /* each surface (technician, supervisor, sign-in) is a root element that owns its own look: see app/styles/*.css */
 .s-tech, .s-sup, .s-auth { min-height: 100vh; }

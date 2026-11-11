@@ -195,7 +195,9 @@ export function createDay(redraw) {
   }
 
   // after every commit: the animation hint is spent, and focus can move into the new DOM
-  function afterCommit() { d.lastChange = null; runFocus(); }
+  // lastChange stays until the next status change: clearing it on an unrelated redraw (a toast timer, a connectivity event)
+  // would drop data-from and cut the wipe animation short. The box remounts per status change, so it cannot replay.
+  function afterCommit() { runFocus(); }
 
   return Object.assign(d, { start, afterCommit, undo, onChange, fileRef, onClick, onPointerDown, onPointerMove, endDrag, onKeyDown });
 }

@@ -35,7 +35,8 @@ const Dropdown = forwardRef(function Dropdown({ id, label, value, onChange, opti
     const me = () => setOpen(false);
     if (closeOther) closeOther();
     closeOther = me;
-    const outside = (e) => { if (!wrap.current.contains(e.target)) setOpen(false); };
+    // a click on this field's own label is forwarded to the button, which toggles the list shut: do not close it twice
+    const outside = (e) => { if (!wrap.current.contains(e.target) && !(id && e.target.closest && e.target.closest(`label[for="${id}"]`))) setOpen(false); };
     const esc = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); } };
     document.addEventListener('mousedown', outside);
     list.addEventListener('keydown', esc);

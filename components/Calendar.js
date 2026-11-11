@@ -25,6 +25,8 @@ export default function Calendar({ anchor, value, onPick, onClose, min = MIN_DAY
   });
 
   const close = (refocus) => { onClose(); if (refocus) anchor.focus(); };
+  const closeRef = useRef(close);
+  closeRef.current = close;
   const pickDay = (s) => { close(true); onPick(s); };
   const focusDay = (dt) => {
     const s = isoOf(dt);
@@ -57,7 +59,10 @@ export default function Calendar({ anchor, value, onPick, onClose, min = MIN_DAY
     const me = { close: onClose };
     if (current) current.close();
     current = me;
-    const outside = (e) => { if (!el.current.contains(e.target) && !anchor.contains(e.target)) onClose(); };
+    const outside = (e) => {
+      const onLabel = anchor.id && e.target.closest && e.target.closest(`label[for="${anchor.id}"]`); // forwarded to the anchor, which toggles
+      if (!el.current.contains(e.target) && !anchor.contains(e.target) && !onLabel) onClose();
+    };
     document.addEventListener('mousedown', outside);
     addEventListener('resize', onClose);
     return () => {
@@ -66,6 +71,15 @@ export default function Calendar({ anchor, value, onPick, onClose, min = MIN_DAY
       if (current === me) current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- registered once for the life of this popover
+  }, []);
+
+  // Escape is a native listener on the popover: React listens on the document, so a React handler could not stop the
+  // supervisor page's own Escape handler from also closing the task drawer
+  useLayoutEffect(() => {
+    const box = el.current;
+    const esc = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeRef.current(true); } };
+    box.addEventListener('keydown', esc);
+    return () => box.removeEventListener('keydown', esc);
   }, []);
 
   const { y, m, focus } = view;
@@ -96,7 +110,6 @@ export default function Calendar({ anchor, value, onPick, onClose, min = MIN_DAY
   };
 
   const onKeyDown = (e) => {
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return close(true); }
     if (!e.target.dataset.d) return;
     const f = toDate(focus), Y = f.getFullYear(), M = f.getMonth(), D = f.getDate(), W = f.getDay();
     const to = { ArrowLeft: () => new Date(Y, M, D - 1), ArrowRight: () => new Date(Y, M, D + 1), ArrowUp: () => new Date(Y, M, D - 7), ArrowDown: () => new Date(Y, M, D + 7),
