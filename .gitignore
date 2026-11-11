@@ -1,3 +1,8 @@
+# Local settings and secrets: only .env.example is committed
+.env
+.env.*
+!.env.example
+
 # Impeccable scratch: decision sketches, review captures, question-page state, hook cache
 .impeccable/mocks/
 .impeccable/review/
