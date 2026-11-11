@@ -67,8 +67,7 @@
       <div class="daynav" role="group" aria-label="เลือกวันที่">
         <button type="button" class="ghost icon" id="prev" aria-label="วันก่อนหน้า"><svg class="ic" aria-hidden="true"><use href="#i-left"/></svg></button>
         <span class="pickwrap">
-          <button type="button" class="ghost" id="pick" aria-haspopup="dialog"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg>เลือกจากปฏิทิน</button>
-          <input type="date" id="day" class="dayin" aria-label="วันที่ที่แสดงในตาราง" tabindex="-1" min="2000-01-01" max="2099-12-31">
+          <button type="button" class="ghost" id="pick" aria-haspopup="dialog" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg>เลือกจากปฏิทิน</button>
         </span>
         <button type="button" class="ghost icon" id="next" aria-label="วันถัดไป"><svg class="ic" aria-hidden="true"><use href="#i-right"/></svg></button>
         <button type="button" class="ghost" id="today" aria-disabled="true">วันนี้</button>
@@ -119,6 +118,7 @@
 
 <datalist id="places"></datalist>
 
+<script src="picker.js"></script>
 <script src="supervisor.js"></script>
 </body>
 </html>

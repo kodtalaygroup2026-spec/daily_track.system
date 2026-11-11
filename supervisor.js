@@ -125,7 +125,6 @@ function renderChrome() {
   const th = (o) => new Intl.DateTimeFormat('th-TH-u-ca-buddhist', o).format(toDate(UI.date));
   $('#date').textContent = th({ weekday: 'long' }) + ' ' + th({ day: 'numeric', month: 'short', year: 'numeric' });
   $('#rel').textContent = relLabel();
-  $('#day').value = UI.date;
   $('#today').setAttribute('aria-disabled', String(UI.date === today())); // not :disabled, so a focused button keeps focus
   $('#clock').textContent = hhmm(nowMins());
 
@@ -191,7 +190,7 @@ function formHTML(t, errs = {}, vals = {}, locked = false) {
   const quick = t ? '' : `<div class="quick" role="group" aria-label="ภารกิจที่ใช้บ่อย">${COMMON.map((c) => `<button type="button" data-quick="${esc(c)}">${esc(c)}</button>`).join('')}</div>`;
   return field('f-title', 'ภารกิจ', `<input type="text" id="f-title" name="title" value="${v('title')}" autocomplete="off"${d}${inv('title')}>${quick}`, errs.title) +
     field('f-tech', 'ช่าง', `<select id="f-tech" name="tech"${d}${inv('tech')}>${techOpts}</select>`, errs.tech) +
-    field('f-date', 'วันที่', `<input type="date" id="f-date" name="date" min="${MIN_DAY}" max="${MAX_DAY}" value="${vals.date ?? (t ? t.date : UI.date)}"${d}${inv('date')}>`, errs.date) +
+    field('f-date', 'วันที่', `<input type="date" id="f-date" name="date" data-pick min="${MIN_DAY}" max="${MAX_DAY}" value="${vals.date ?? (t ? t.date : UI.date)}"${d}${inv('date')}>`, errs.date) +
     field('f-time', 'เวลา', `<input type="time" id="f-time" name="time" value="${vals.time ?? (t ? t.time : defaultTime())}"${d}${inv('time')}>`, errs.time) +
     field('f-place', 'สถานที่', `<input type="text" id="f-place" name="place" list="places" value="${v('place')}" autocomplete="off"${d}${inv('place')}>`, errs.place);
 }
@@ -371,11 +370,7 @@ function setDay(iso) {
 $('#prev').addEventListener('click', () => setDay(addDays(UI.date, -1)));
 $('#next').addEventListener('click', () => setDay(addDays(UI.date, 1)));
 $('#today').addEventListener('click', () => setDay(today()));
-$('#day').addEventListener('change', (e) => setDay(e.target.value));
-$('#pick').addEventListener('click', () => {
-  const i = $('#day');
-  try { i.showPicker(); } catch (e) { i.focus(); i.click(); } // older browsers: no showPicker, fall back to the field itself
-});
+$('#pick').addEventListener('click', () => Pick.calendar($('#pick'), UI.date, setDay, { min: MIN_DAY, max: MAX_DAY, today: today() }));
 
 function restart(state) {
   S = state;
@@ -442,4 +437,4 @@ document.addEventListener('keydown', (e) => {
   if (UI.mode && !$('#lightbox').open) closeDrawer();
 });
 
-buildControls(); load(); render();
+buildControls(); load(); Pick.watch($('#drawer')); Pick.selects(document.querySelector('.tools')); render();
