@@ -1,7 +1,7 @@
 // The technician's day: tasks, offline queue, camera gate, swipe and toast.
 // Kept as plain mutable state plus redraw() (a direct port of the static app.js) because the camera, change and pointer
 // flow must read the latest values synchronously, and the file input has to be clicked inside the user gesture.
-// Photos are the gate: a task starts only with a BEFORE photo and finishes only with an AFTER photo.
+// Photos are the gate (a swipe first asks "finish?" in a dialog): a task starts only with a BEFORE photo and finishes only with an AFTER photo.
 import { clockNow } from '@/lib/dates';
 import { loadDay, saveDay } from '@/lib/tech-store';
 
@@ -24,8 +24,9 @@ export function createDay(redraw) {
     lastChange: null, // { id, from } for the unwipe animation, read by the render that follows a status change
     rev: {}, // per task: bumped on every status change so the box remounts and its animation replays
     toast: { text: '', undoId: 0, show: false },
+    confirm: null, // { id } of the task the finish dialog is about
   };
-  let fileEl = null, pending = null, focus = null, drag = null, toastTimer = 0, sentTimer = 0;
+  let fileEl = null, dlgEl = null, pending = null, focus = null, drag = null, toastTimer = 0, sentTimer = 0;
   // pending = the photo the open camera is for
 
   const save = () => { d.photosOk = saveDay(d.tasks, d.queue); };
@@ -92,6 +93,26 @@ export function createDay(redraw) {
     fileEl.value = ''; fileEl.click();
   }
 
+  /* ---- confirm before finishing: the swipe only asks; the camera opens from the dialog's own button ---- */
+  function askFinish(id) {
+    const t = d.tasks.find((x) => x.id === id);
+    if (d.busy || !dlgEl || dlgEl.open || !t || !allowed(t, 'after')) return;
+    d.confirm = { id };
+    dlgEl.returnValue = '';
+    dlgEl.showModal();
+    dlgEl.querySelector('.go').focus();
+    redraw();
+  }
+  function confirmGo() {
+    const { id } = d.confirm;
+    dlgEl.close('go');
+    openCamera(id, 'after'); // still inside the click, so the browser lets the camera open
+  }
+  // Escape, "ยังไม่จบ" and a click on the backdrop all land here: nothing changes, focus goes back to the thumb
+  function onDialogClose() { if (dlgEl.returnValue !== 'go') focusAfter(d.confirm.id, 'doing'); }
+  function onDialogClick(e) { if (e.target === e.currentTarget) dlgEl.close(); }
+  const dialogRef = (el) => { dlgEl = el; };
+
   function release(p) {
     pending = null;
     if (!p) return;
@@ -141,7 +162,7 @@ export function createDay(redraw) {
     if (photo) return openCamera(Number(photo.dataset.photo), 'before');
     // a click with no pointer drag (screen reader double-tap, switch or voice control) opens the camera for the after photo
     const th = e.target.closest('.thumb');
-    if (th && e.detail === 0) openCamera(Number(th.parentElement.dataset.id), 'after');
+    if (th && e.detail === 0) askFinish(Number(th.parentElement.dataset.id));
   }
 
   // swipe to finish: a forgiving drag on a dedicated track, never on the whole card.
@@ -165,14 +186,14 @@ export function createDay(redraw) {
     drag = null;
     track.classList.remove('drag');
     track.style.setProperty('--x', '0px'); // the thumb always eases back: nothing can leave it stuck while the camera is open
-    if (e.type === 'pointerup' && x >= max * 0.72) return openCamera(id, 'after'); // a pointercancel is not a user gesture, never opens the camera
+    if (e.type === 'pointerup' && x >= max * 0.72) return askFinish(id); // a pointercancel is not a user gesture, never asks
     if (x < 6) { th.classList.add('nudge'); setTimeout(() => th.classList.remove('nudge'), 650); }
   }
   function onKeyDown(e) {
     const th = e.target.closest('.thumb');
     if (th && ['Enter', ' ', 'ArrowRight'].includes(e.key)) {
       e.preventDefault();
-      openCamera(Number(th.parentElement.dataset.id), 'after');
+      askFinish(Number(th.parentElement.dataset.id));
     }
   }
 
@@ -199,5 +220,5 @@ export function createDay(redraw) {
   // would drop data-from and cut the wipe animation short. The box remounts per status change, so it cannot replay.
   function afterCommit() { runFocus(); }
 
-  return Object.assign(d, { start, afterCommit, undo, onChange, fileRef, onClick, onPointerDown, onPointerMove, endDrag, onKeyDown });
+  return Object.assign(d, { start, afterCommit, undo, onChange, fileRef, dialogRef, confirmGo, onDialogClose, onDialogClick, onClick, onPointerDown, onPointerMove, endDrag, onKeyDown });
 }

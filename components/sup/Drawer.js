@@ -3,6 +3,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import Dropdown from '@/components/Dropdown';
 import DateField from '@/components/DateField';
 import { MAX_DAY, MIN_DAY, dur, hhmm, mins, minsSince, nowMins, today } from '@/lib/dates';
+import { BRANCHES, TECH_BRANCH } from '@/lib/branches';
 import { COMMON, TECHS, photoURI } from '@/lib/sup-store';
 import { Icon, LABEL, NAMES, emptyText, fmtLate, lateMins, slot } from './ui';
 
@@ -39,14 +40,16 @@ function SubText({ t }) {
 }
 
 // The parent keys this component by mode, selected task and a revision counter, so a remount is how the form is reset.
-const Drawer = forwardRef(function Drawer({ mode, task, date, onSave, onClose, onCreate, onShot }, ref) {
+const Drawer = forwardRef(function Drawer({ mode, task, date, branch, onSave, onClose, onCreate, onShot }, ref) {
   const root = useRef(null);
-  const refs = { title: useRef(null), tech: useRef(null), date: useRef(null), time: useRef(null), place: useRef(null) };
+  const refs = { title: useRef(null), branch: useRef(null), tech: useRef(null), date: useRef(null), time: useRef(null), place: useRef(null) };
   const [vals, setVals] = useState(() => (task && mode === 'view'
-    ? { title: task.title, tech: task.tech, date: task.date, time: task.time, place: task.place }
-    : { title: '', tech: '', date, time: defaultTime(date), place: '' }));
+    ? { title: task.title, branch: task.branch || '', tech: task.tech, date: task.date, time: task.time, place: task.place }
+    : { title: '', branch: branch || '', tech: '', date, time: defaultTime(date), place: '' }));
   const [errs, setErrs] = useState({});
   const set = (k) => (v) => setVals((s) => ({ ...s, [k]: v }));
+  // a technician belongs to one branch: choosing another branch clears a technician who is not in it
+  const setBranch = (v) => setVals((s) => ({ ...s, branch: v, tech: v && s.tech && TECH_BRANCH[s.tech] !== v ? '' : s.tech }));
 
   useImperativeHandle(ref, () => ({
     focusTitle: () => root.current.querySelector('h2')?.focus(),
@@ -54,16 +57,17 @@ const Drawer = forwardRef(function Drawer({ mode, task, date, onSave, onClose, o
   }), []);
 
   useEffect(() => {
-    const bad = ['title', 'tech', 'date', 'time', 'place'].find((k) => errs[k]);
+    const bad = ['title', 'branch', 'tech', 'date', 'time', 'place'].find((k) => errs[k]);
     if (bad) refs[bad].current.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per failed submit (errs is a new object each time)
   }, [errs]);
 
   const submit = (e) => {
     e.preventDefault();
-    const v = { title: vals.title.trim(), tech: vals.tech, date: vals.date, time: vals.time, place: vals.place.trim() };
+    const v = { title: vals.title.trim(), branch: vals.branch, tech: vals.tech, date: vals.date, time: vals.time, place: vals.place.trim() };
     const er = {};
     if (!v.title) er.title = 'กรุณาระบุชื่อภารกิจ';
+    if (!v.branch) er.branch = 'กรุณาเลือกสาขา';
     if (!v.tech) er.tech = 'กรุณาเลือกช่าง';
     if (!v.date) er.date = 'กรุณาเลือกวันที่';
     else if (v.date < MIN_DAY || v.date > MAX_DAY) er.date = 'วันที่ไม่ถูกต้อง เลือกปี พ.ศ. 2543 ถึง 2642';
@@ -89,7 +93,9 @@ const Drawer = forwardRef(function Drawer({ mode, task, date, onSave, onClose, o
       </div>
     );
   } else {
-    const techOpts = (create ? [{ value: '', label: 'เลือกช่าง' }] : []).concat(TECHS.map((n) => ({ value: n, label: n })));
+    const branchOpts = (create ? [{ value: '', label: 'เลือกสาขา' }] : []).concat(BRANCHES);
+    // only the chosen branch's technicians; the placeholder shows while none is chosen (a new task, or the branch just changed)
+    const techOpts = (create || !vals.tech ? [{ value: '', label: 'เลือกช่าง' }] : []).concat(TECHS.filter((n) => !vals.branch || TECH_BRANCH[n] === vals.branch).map((n) => ({ value: n, label: n })));
     const fig = (k) => {
       const s = slot(t, k);
       return (
@@ -117,10 +123,13 @@ const Drawer = forwardRef(function Drawer({ mode, task, date, onSave, onClose, o
           {create && (
             <div className="quick" role="group" aria-label="ภารกิจที่ใช้บ่อย">
               {COMMON.map((c) => (
-                <button type="button" key={c} onClick={() => { set('title')(c); refs.tech.current.focus(); }}>{c}</button>
+                <button type="button" key={c} onClick={() => { set('title')(c); (vals.branch ? refs.tech : refs.branch).current.focus(); }}>{c}</button>
               ))}
             </div>
           )}
+        </Field>
+        <Field id="f-branch" label="สาขา" err={errs.branch}>
+          <Dropdown id="f-branch" ref={refs.branch} label="สาขา" value={vals.branch} onChange={setBranch} options={branchOpts} disabled={locked} {...inv('branch')} />
         </Field>
         <Field id="f-tech" label="ช่าง" err={errs.tech}>
           <Dropdown id="f-tech" ref={refs.tech} label="ช่าง" value={vals.tech} onChange={set('tech')} options={techOpts} disabled={locked} {...inv('tech')} />

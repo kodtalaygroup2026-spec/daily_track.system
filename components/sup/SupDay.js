@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Dropdown from '@/components/Dropdown';
 import CalendarTrigger from '@/components/CalendarTrigger';
 import { logout } from '@/lib/auth';
+import { BRANCHES, TECH_BRANCH, branchLabel } from '@/lib/branches';
 import { MAX_DAY, MIN_DAY, addDays, dayNum, hhmm, mins, nowMins, th, toDate, today } from '@/lib/dates';
 import { PLACES, TECHS, loadSup, newTask, photoURI, sampleSup, saveSup } from '@/lib/sup-store';
 import Drawer from './Drawer';
@@ -20,10 +21,11 @@ const savedMenu = () => { try { return localStorage.getItem(MENU_KEY) !== 'close
 const dayTitle = (iso) => th(toDate(iso), { weekday: 'long' }) + ' ' + th(toDate(iso), { day: 'numeric', month: 'short', year: 'numeric' });
 // "9–11 พ.ย. 2569"; across months "28 ต.ค. – 3 พ.ย. 2569"
 const rangeTitle = (a, b) => new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { day: 'numeric', month: 'short', year: 'numeric' }).formatRange(toDate(a), toDate(b));
-const TECH_OPTIONS = [{ value: '', label: 'ช่างทุกคน' }, ...TECHS.map((n) => ({ value: n, label: n }))];
+const BRANCH_OPTIONS = [{ value: '', label: 'ทุกสาขา' }, ...BRANCHES];
+const techOptions = (branch) => [{ value: '', label: 'ช่างทุกคน' }, ...TECHS.filter((n) => !branch || TECH_BRANCH[n] === branch).map((n) => ({ value: n, label: n }))];
 
 // date = first shown day, to = last shown day ('' = just the one day)
-const FRESH = { date: '', to: '', filter: 'all', tech: '', sort: { key: 'time', dir: 1 }, sel: null, mode: null, rev: 0 };
+const FRESH = { date: '', to: '', filter: 'all', branch: '', tech: '', sort: { key: 'time', dir: 1 }, sel: null, mode: null, rev: 0 };
 
 export default function SupDay({ user }) {
   const router = useRouter();
@@ -119,7 +121,7 @@ export default function SupDay({ user }) {
   const span = dayNum(to) - dayNum(date) + 1; // days shown
   const tasksIn = (a, b) => data.tasks.filter((t) => t.date >= a && t.date <= b);
   const dayList = tasksIn(date, to);
-  const pool = dayList.filter((t) => !ui.tech || t.tech === ui.tech);
+  const pool = dayList.filter((t) => (!ui.branch || t.branch === ui.branch) && (!ui.tech || t.tech === ui.tech));
   const rows = (() => {
     const { key, dir } = ui.sort;
     const when = (a, b) => a.date.localeCompare(b.date) || mins(a.time) - mins(b.time); // days first, then the hour
@@ -161,9 +163,9 @@ export default function SupDay({ user }) {
 
   function save(vals) {
     let toastText, next;
-    const fresh = { sel: null, tech: ui.tech, filter: ui.filter };
+    const fresh = { sel: null, branch: ui.branch, tech: ui.tech, filter: ui.filter };
     if (ui.mode === 'create') {
-      const t = newTask(data.nextId, vals.time, vals.title, vals.tech, vals.place, 'todo', { date: vals.date });
+      const t = newTask(data.nextId, vals.time, vals.title, vals.tech, vals.place, 'todo', { date: vals.date, branch: vals.branch });
       next = { ...data, nextId: data.nextId + 1, tasks: [...data.tasks, t] };
       fresh.sel = t.id;
       if (ui.filter !== 'all' && ui.filter !== 'todo') fresh.filter = 'all';
@@ -176,6 +178,7 @@ export default function SupDay({ user }) {
       toastText = rescheduled ? `ย้าย “${vals.title}” ไปที่ ${relLabel(vals.date) === 'วันนี้' ? 'วันนี้' : dayTitle(vals.date)} แล้ว`
         : moved ? `ย้าย “${vals.title}” ไปให้ ${vals.tech} แล้ว` : `บันทึก “${vals.title}” แล้ว`;
     }
+    if (fresh.branch && fresh.branch !== vals.branch) fresh.branch = '';
     if (fresh.tech && fresh.tech !== vals.tech) fresh.tech = ''; // keep the new or moved row on screen
     commit(next);
     const inView = vals.date >= date && vals.date <= to; // a task moved outside the shown days: follow it to its day
@@ -207,6 +210,11 @@ export default function SupDay({ user }) {
   const dayNone = !dayList.length;
   const isToday = date === today() && !isRange;
   const cls = 's-sup' + (menuOpen ? ' menu-open' : '');
+
+  // when the technician took the before and the after photo: a todo task has neither, a doing task only the start
+  const stamps = (t) => (t.status === 'todo'
+    ? <><span className="sr">ยังไม่เริ่มงาน</span>—</>
+    : <><span>เริ่ม {t.beforeAt || '—'}</span>{t.status === 'done' && <span>เสร็จ {t.afterAt || '—'}</span>}</>);
 
   const cell = (t, k) => {
     const s = slot(t, k);
@@ -294,8 +302,13 @@ export default function SupDay({ user }) {
                 </div>
                 {/* a div, not a label: a label around the dropdown would forward list clicks back to its button */}
                 <div className="sel">
+                  <span>สาขา</span>
+                  <Dropdown id="branch" label="สาขา" value={ui.branch}
+                    onChange={(v) => patch({ branch: v, tech: v && ui.tech && TECH_BRANCH[ui.tech] !== v ? '' : ui.tech })} options={BRANCH_OPTIONS} />
+                </div>
+                <div className="sel">
                   <span>ช่าง</span>
-                  <Dropdown id="tech" label="ช่าง" value={ui.tech} onChange={(v) => patch({ tech: v })} options={TECH_OPTIONS} />
+                  <Dropdown id="tech" label="ช่าง" value={ui.tech} onChange={(v) => patch({ tech: v })} options={techOptions(ui.branch)} />
                 </div>
               </div>
 
@@ -311,6 +324,7 @@ export default function SupDay({ user }) {
                           </th>
                         );
                       })}
+                      <th scope="col" className="c-w">เริ่ม / เสร็จ</th>
                       <th scope="col" className="c-p">รูปก่อน · หลัง</th>
                     </tr>
                   </thead>
@@ -326,7 +340,8 @@ export default function SupDay({ user }) {
                               onClick={(e) => { e.stopPropagation(); open(t.id, 'row'); }}>{t.title}</button>
                             <p>{t.place}</p>
                           </td>
-                          <td className="c-h">{t.tech}</td>
+                          <td className="c-h">{t.tech}<p>สาขา {branchLabel(t.branch)}</p></td>
+                          <td className="c-w">{stamps(t)}</td>
                           <td className="c-p"><div className="pair">{cell(t, 'before')}{cell(t, 'after')}</div></td>
                         </tr>
                       );
@@ -343,8 +358,8 @@ export default function SupDay({ user }) {
                   ) : (
                     <>
                       <h2>ไม่พบภารกิจตามตัวกรอง</h2>
-                      <p>ลองเลือกสถานะหรือช่างอื่น</p>
-                      <button type="button" className="secondary" onClick={() => { patch({ filter: 'all', tech: '' }); firstSeg.current.focus(); }}>ล้างตัวกรอง</button>
+                      <p>ลองเลือกสถานะ สาขา หรือช่างอื่น</p>
+                      <button type="button" className="secondary" onClick={() => { patch({ filter: 'all', branch: '', tech: '' }); firstSeg.current.focus(); }}>ล้างตัวกรอง</button>
                     </>
                   )}
                 </div>
@@ -356,7 +371,7 @@ export default function SupDay({ user }) {
               </p>
             </main>
 
-            <Drawer key={`${ui.mode}:${ui.sel}:${ui.rev}`} ref={drawerRef} mode={ui.mode} task={selTask} date={date}
+            <Drawer key={`${ui.mode}:${ui.sel}:${ui.rev}`} ref={drawerRef} mode={ui.mode} task={selTask} date={date} branch={ui.branch}
               onSave={save} onClose={closeDrawer} onCreate={startCreate} onShot={setLb} />
           </div>
         </div>

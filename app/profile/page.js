@@ -3,6 +3,7 @@ import '../styles/auth.css';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { branchLabel } from '../../lib/branches';
 import { homeFor, logout, rename, useSession } from '../../lib/auth';
 
 export default function Page() {
@@ -42,6 +43,7 @@ export default function Page() {
           </div>
           <dl className="info">
             <div><dt>รหัสพนักงาน</dt><dd id="code">{user.code}</dd></div>
+            <div><dt>สาขา</dt><dd id="branch">{branchLabel(user.branch) || 'ทุกสาขา'}</dd></div>
             <div><dt>บทบาท</dt><dd id="role">{user.role === 'tech' ? 'ช่าง' : 'หัวหน้า'}</dd></div>
           </dl>
           <p className={'msg' + (msg.bad ? ' bad' : '')} id="msg" role="status">{msg.text}</p>

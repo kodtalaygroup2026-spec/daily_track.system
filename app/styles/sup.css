@@ -73,6 +73,7 @@
 .s-sup .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
 .s-sup .seg button:focus-visible { outline-offset: -6px; outline-color: var(--yellow); }
 .s-sup .seg button[aria-pressed="false"]:focus-visible { outline-color: var(--ink); }
+.s-sup .sel + .sel { margin-left: 0; }
 .s-sup .sel { margin-left: auto; display: flex; align-items: center; gap: .625rem; font: 700 1rem var(--kanit); }
 .s-sup select, .s-sup input[type="text"], .s-sup input[type="time"], .s-sup input[type="date"]:not(.dayin) {
   min-height: 3.25rem; padding: 0 1rem; background: #fff; border: 2px solid var(--ink); border-radius: 12px; font-weight: 500;
@@ -87,11 +88,14 @@
   width: 100%; min-height: 3rem; padding: 0 1rem; display: flex; align-items: center; gap: .375rem;
   background: none; border: 0; font: 700 1rem var(--kanit); cursor: pointer; text-align: left;
 }
-.s-sup th.c-p { padding: 0 1rem; font: 700 1rem var(--kanit); width: 10rem; }
+.s-sup th.c-p, .s-sup th.c-w { padding: 0 1rem; font: 700 1rem var(--kanit); }
+.s-sup th.c-p { width: 10rem; }
 .s-sup th button:focus-visible { outline-offset: -4px; }
 .s-sup td { height: 4.25rem; padding: 0 1rem; border-bottom: 2px solid var(--ground); font-variant-numeric: tabular-nums; }
 .s-sup tr:last-child td { border-bottom: 0; }
-.s-sup .c-s { width: 9.5rem; } .s-sup .c-t { width: 9.5rem; } .s-sup .c-h { width: 9rem; }
+.s-sup .c-s { width: 8.5rem; } .s-sup .c-t { width: 9.5rem; } .s-sup .c-h { width: 9rem; } .s-sup .c-w { width: 7rem; }
+.s-sup td.c-h p { color: var(--quiet); }
+.s-sup td.c-w span:not(.sr) { display: block; white-space: nowrap; }
 .s-sup td.late small { white-space: nowrap; }
 .s-sup td.task { padding: .5rem 1rem; }
 .s-sup td.task button { background: none; border: 0; padding: .25rem 0; font: 700 1.25rem/1.25 var(--kanit); text-align: left; cursor: pointer; }
@@ -240,8 +244,8 @@
 .s-sup .seg button[aria-pressed="false"]:hover { background: var(--hover); }
 .s-sup .shot:hover { background: var(--hover); }
 @media (max-width: 699px) {
-  .s-sup .c-p { display: none; }
-  .s-sup td.c-p { display: none; }
+  .s-sup .c-p, .s-sup .c-w { display: none; }
+  .s-sup td.c-p, .s-sup td.c-w { display: none; }
 }
 
 /* custom dropdown and calendar (picker.js): same ink border, flat, a tick marks the chosen item */

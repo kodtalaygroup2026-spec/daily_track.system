@@ -19,6 +19,9 @@ export function Sprite() {
 // from: the status the box just left (drives the unwipe animation); rev changes on every status change so the box remounts
 export default function TaskBox({ t, from, rev }) {
   const meta = <p className="meta">{`${t.time} · ${t.place}`}</p>;
+  // the times of the before and after photos; a missing part is left out
+  const times = [t.beforeAt && `เริ่ม ${t.beforeAt}`, t.status === 'done' && t.afterAt && `เสร็จ ${t.afterAt}`].filter(Boolean).join(' · ');
+  const clock = times && <p className="meta times">{times}</p>;
   const label = (ic) => <span className="st">{ic}{LABEL[t.status]}</span>;
 
   if (t.status === 'todo') {
@@ -46,11 +49,11 @@ export default function TaskBox({ t, from, rev }) {
     return (
       <li><article key={rev} className="box" data-state="doing" data-from={from}>
         <div className="band" aria-hidden="true"></div>
-        <div className="doing-body">{label()}<h2>{t.title}</h2>{meta}{body}</div></article></li>
+        <div className="doing-body">{label()}<h2>{t.title}</h2>{meta}{clock}{body}</div></article></li>
     );
   }
   return (
     <li><article key={rev} className="box" data-state="done" data-from={from}>{label(<Icon n="check" />)}
-      <h2>{t.title}</h2>{meta}{t.before && t.after && <span className="cue"><Icon n="camera" />รูปก่อน-หลังครบ</span>}</article></li>
+      <h2>{t.title}</h2>{meta}{clock}{t.before && t.after && <span className="cue"><Icon n="camera" />รูปก่อน-หลังครบ</span>}</article></li>
   );
 }

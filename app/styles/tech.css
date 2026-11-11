@@ -183,3 +183,21 @@
   .s-tech *, .s-tech *::before, .s-tech *::after { animation: none !important; transition: none !important; }
 }
 
+
+/* ---- confirm before finishing: a native modal dialog ---- */
+.s-tech dialog.confirm {
+  width: calc(100% - 2rem); max-width: 26rem; padding: 0;
+  background: #fff; color: var(--ink); border: 4px solid var(--ink); border-radius: var(--radius);
+}
+.s-tech dialog.confirm::backdrop { background: rgba(20, 24, 27, .7); }
+.s-tech .cf-body { display: grid; gap: .75rem; padding: 1.25rem; font-size: 1.0625rem; }
+.s-tech .cf-body h2 { font: 700 1.5rem/1.25 var(--kanit); }
+.s-tech .cf-task { font-weight: 700; overflow-wrap: anywhere; }
+.s-tech .cf-body button {
+  display: flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; min-height: 3.5rem; padding: 0 1.1rem;
+  border: 2px solid var(--ink); border-radius: 12px; font: 700 1.0625rem var(--kanit); cursor: pointer;
+}
+.s-tech .cf-body .go { margin-top: .5rem; background: var(--ink); color: #fff; }
+.s-tech .cf-body .go:active { background: #000; }
+.s-tech .cf-body .no { background: transparent; }
+.s-tech .cf-body .no:active { background: rgba(20, 24, 27, .12); }

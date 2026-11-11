@@ -2,6 +2,7 @@
 import { useEffect, useReducer, useRef } from 'react';
 import Link from 'next/link';
 import { th } from '@/lib/dates';
+import { branchLabel } from '@/lib/branches';
 import { createDay } from './day';
 import TaskBox, { Icon, Sprite } from './TaskBox';
 
@@ -39,7 +40,7 @@ export default function TechDay({ user }) {
           <Sprite />
           <div className="app">
             <header className="bar">
-              <span className="brand">Daily Track</span>
+              <span className="brand">{user.branch ? `Daily Track · ${branchLabel(user.branch)}` : 'Daily Track'}</span>
               <Link className="who" href="/profile" title="โปรไฟล์ของฉัน"><span id="whoName">{user.name}</span><Icon n="chev" /></Link>
             </header>
 
@@ -79,6 +80,16 @@ export default function TechDay({ user }) {
       )}
 
       <input type="file" id="file" accept="image/*" capture="environment" hidden ref={d.fileRef} onChange={d.onChange} />
+
+      <dialog className="confirm" ref={d.dialogRef} aria-labelledby="cfTitle" onClose={d.onDialogClose} onClick={d.onDialogClick}>
+        <div className="cf-body">
+          <h2 id="cfTitle">จบงานนี้ใช่ไหม?</h2>
+          <p className="cf-task">{(tasks.find((t) => d.confirm && t.id === d.confirm.id) || {}).title}</p>
+          <p>ต้องถ่ายรูปหลังก่อนจึงจะจบงาน</p>
+          <button type="button" className="go" onClick={d.confirmGo}><Icon n="camera" />ถ่ายรูปหลังและจบงาน</button>
+          <button type="button" className="no" onClick={(e) => e.currentTarget.closest('dialog').close()}>ยังไม่จบ</button>
+        </div>
+      </dialog>
 
       <div className={`toast${toast.show ? ' show' : ''}`} id="toast" role="status" aria-live="polite">
         <span id="toastText">{toast.text}</span>
