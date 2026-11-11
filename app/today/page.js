@@ -1,6 +1,9 @@
+'use client';
 import '../styles/tech.css';
+import { useSession } from '@/lib/auth';
+import TechDay from '@/components/tech/TechDay';
 
-// stub: replaced by the port of the static page
 export default function Page() {
-  return <div className="s-tech"><p>today</p></div>;
+  const user = useSession('tech');
+  return user ? <TechDay user={user} /> : null;
 }

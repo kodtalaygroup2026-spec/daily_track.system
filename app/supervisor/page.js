@@ -1,6 +1,9 @@
+'use client';
 import '../styles/sup.css';
+import { useSession } from '@/lib/auth';
+import SupDay from '@/components/sup/SupDay';
 
-// stub: replaced by the port of the static page
 export default function Page() {
-  return <div className="s-sup"><p>supervisor</p></div>;
+  const user = useSession('sup');
+  return user ? <SupDay user={user} /> : null;
 }
