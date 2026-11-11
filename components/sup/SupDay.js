@@ -15,7 +15,7 @@ import { Icon, LABEL, NAMES, Sprite, fmtLate, issue, lateMins, relLabel, slot } 
 const FILTERS = [['all', 'ทั้งหมด'], ['todo', 'รอทำ'], ['doing', 'กำลังทำ'], ['done', 'เสร็จ'], ['photo', 'รูปไม่ครบ']];
 const HEADS = [['status', 'สถานะ', 'c-s'], ['time', 'เวลา', 'c-t'], ['title', 'ภารกิจ', undefined], ['tech', 'ช่าง', 'c-h']];
 const ORDER = { todo: 0, doing: 1, done: 2 };
-const MENU_KEY = 'dailytrack.menu.v1', MENU_W = 240, RAIL_W = 72; // widened menu and the icon rail, in px (15rem, 4.5rem)
+const MENU_KEY = 'dailytrack.menu.v1';
 const isDocked = () => window.innerWidth >= 1280;
 const savedMenu = () => { try { return localStorage.getItem(MENU_KEY) !== 'closed'; } catch (e) { return true; } };
 const dayTitle = (iso) => th(toDate(iso), { weekday: 'long' }) + ' ' + th(toDate(iso), { day: 'numeric', month: 'short', year: 'numeric' });
@@ -32,7 +32,6 @@ export default function SupDay({ user }) {
   const [data, setData] = useState(null); // { nextId, tasks }; null until storage has been read (never during the first render)
   const [ui, setUi] = useState(FRESH);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [vw, setVw] = useState(0);
   const [live, setLive] = useState('');
   const [toastState, setToastState] = useState({ text: '', show: false });
   const [lb, setLb] = useState(null); // task id shown in the lightbox
@@ -53,9 +52,6 @@ export default function SupDay({ user }) {
   const commit = (next) => { setData(next); saveSup(next); };
 
   /* ---- left menu: docked beside the page from 1280px, a panel over it below. The docked choice is remembered. ---- */
-  const docked = vw >= 1280;
-  // the rail always takes its width; only a widened docked menu takes more. Below that the drawer is a panel over the table.
-  const narrow = vw - (docked && menuOpen ? MENU_W : RAIL_W) < 1280;
   function setMenu(open) {
     setMenuOpen(open);
     if (isDocked()) { try { localStorage.setItem(MENU_KEY, open ? 'open' : 'closed'); } catch (e) { /* not remembered */ } }
@@ -64,12 +60,10 @@ export default function SupDay({ user }) {
   useEffect(() => {
     setData(loadSup());
     patch({ date: today() });
-    setVw(window.innerWidth);
     wasDocked.current = isDocked();
     setMenu(wasDocked.current ? savedMenu() : false);
     last.current = { m: nowMins(), d: today() };
     const onResize = () => {
-      setVw(window.innerWidth);
       if (isDocked() !== wasDocked.current) { wasDocked.current = isDocked(); setMenu(wasDocked.current ? savedMenu() : false); } // crossing 1280px: panel closes, docked menu comes back
     };
     window.addEventListener('resize', onResize);
@@ -147,8 +141,8 @@ export default function SupDay({ user }) {
   function open(id, from) {
     if (ui.mode === 'view' && ui.sel === id && !from) return; // re-clicking the open row must not wipe unsaved edits
     patch({ sel: id, mode: 'view', rev: ui.rev + 1 });
-    // keyboard opens (and any open on a narrow screen) move focus into the drawer; closing returns it to the row
-    if (narrow || from === 'row') after.current = () => drawerRef.current && drawerRef.current.focusTitle();
+    // the task opens in a modal box: focus moves into it; closing returns it to the row
+    after.current = () => drawerRef.current && drawerRef.current.focusTitle();
   }
   function startCreate() {
     patch({ sel: null, mode: 'create', rev: ui.rev + 1 });
@@ -157,8 +151,8 @@ export default function SupDay({ user }) {
   function closeDrawer() {
     const id = ui.sel;
     patch({ sel: null, mode: null });
-    const back = id && document.querySelector(`[data-open="${id}"]`);
-    (back || createBtn.current).focus();
+    // after the box is gone and the page is live again (an inert element cannot take focus)
+    after.current = () => { const back = id && document.querySelector(`[data-open="${id}"]`); (back || createBtn.current).focus(); };
   }
 
   function save(vals) {
@@ -232,7 +226,7 @@ export default function SupDay({ user }) {
   };
 
   return (
-    <div className={cls} data-narrow={narrow ? '1' : ''}>
+    <div className={cls}>
       <Sprite />
       <div className="page">
         <nav id="menu" ref={menuRef} className="menu" aria-label="เมนูหัวหน้า">
@@ -274,7 +268,7 @@ export default function SupDay({ user }) {
             <button type="button" id="logout" className="ghost" onClick={logOut}>ออกจากระบบ</button>
           </header>
 
-          <div className={'layout' + (!ui.mode ? ' idle' : '')}>
+          <div className="layout">
             <main>
               <div className="daybar">
                 <div>
@@ -370,12 +364,15 @@ export default function SupDay({ user }) {
                 <button type="button" id="reset" onClick={restart}>เริ่มตัวอย่างใหม่</button>
               </p>
             </main>
-
-            <Drawer key={`${ui.mode}:${ui.sel}:${ui.rev}`} ref={drawerRef} mode={ui.mode} task={selTask} date={date} branch={ui.branch}
-              onSave={save} onClose={closeDrawer} onCreate={startCreate} onShot={setLb} />
           </div>
         </div>
       </div>
+
+      {/* outside .page, which is made inert while the box is open */}
+      {ui.mode && (
+        <Drawer key={`${ui.mode}:${ui.sel}:${ui.rev}`} ref={drawerRef} mode={ui.mode} task={selTask} date={date} branch={ui.branch}
+          onSave={save} onClose={closeDrawer} onShot={setLb} />
+      )}
 
       {lb != null && data.tasks.some((t) => t.id === lb) && <Lightbox task={data.tasks.find((t) => t.id === lb)} onClose={() => setLb(null)} />}
 

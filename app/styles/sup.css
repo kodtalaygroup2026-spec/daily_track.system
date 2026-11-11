@@ -53,7 +53,7 @@
   border-radius: 12px; font: 700 1rem var(--kanit); cursor: pointer;
 }
 
-.s-sup .layout { display: grid; grid-template-columns: minmax(0, 1fr) 26rem; align-items: start; gap: 1.5rem; padding: 1.25rem var(--pad) 3rem; }
+.s-sup .layout { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.5rem; padding: 1.25rem var(--pad) 3rem; }
 .s-sup main { min-width: 0; }
 
 /* the day is the page title; the calendar button opens the browser's own date picker */
@@ -138,13 +138,26 @@
 .s-sup .note { margin-top: 1.25rem; color: var(--quiet); display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; }
 .s-sup .note button { min-height: 2.75rem; padding: 0; background: none; border: 0; color: var(--ink); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
 
-/* drawer */
-.s-sup .drawer { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; background: #fff; border: 2px solid var(--ink); border-radius: 14px; padding: 1.25rem; }
-.s-sup .drawer h2 { font: 700 1.25rem/1.25 var(--kanit); }
-.s-sup .drawer .sub { color: var(--quiet); margin-top: .25rem; }
+/* task box: a modal over the page (create, view, edit). Header and footer stay put, the middle scrolls. */
+.s-sup .tm-scrim { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 1rem; background: rgba(20, 24, 27, .7); animation: fade-in .2s ease; }
+.s-sup .tm { width: min(100%, 44rem); max-height: 100%; display: flex; flex-direction: column; background: #fff; border: 2px solid var(--ink); border-radius: 14px; overflow: hidden; animation: modal-in .28s var(--ease); }
+.s-sup .tm form { display: flex; flex-direction: column; min-height: 0; }
+.s-sup .tm h2 { font: 700 1.25rem/1.25 var(--kanit); }
+.s-sup .tm .sub { color: var(--quiet); margin-top: .25rem; }
 .s-sup .dhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
-.s-sup .x { flex: none; width: 3rem; height: 3rem; display: grid; place-items: center; background: none; border: 2px solid var(--ink); border-radius: 12px; cursor: pointer; }
-.s-sup .x { display: none; }
+.s-sup .tm-head { padding: 1.25rem 1.5rem 1rem; border-bottom: 2px solid var(--ground); }
+.s-sup .tm-body { min-height: 0; overflow-y: auto; padding: 0 1.5rem 1.5rem; }
+.s-sup .tm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.125rem 1.25rem; margin-top: 1.25rem; }
+.s-sup .tm-grid .field { margin: 0; }
+.s-sup .tm-grid .full { grid-column: 1 / -1; }
+.s-sup .tm-body .stat { margin-top: 1.25rem; }
+.s-sup .tm-foot { margin: 0; padding: 1rem 1.5rem; border-top: 2px solid var(--ground); justify-content: flex-end; }
+.s-sup .tm-foot .primary { flex: none; min-width: 10rem; }
+.s-sup .x { flex: none; width: 3rem; height: 3rem; display: grid; place-items: center; background: none; border: 2px solid var(--ink); border-radius: 12px; cursor: pointer; transition: background-color .15s ease; }
+.s-sup .x:hover { background: var(--hover); }
+@media (max-width: 559px) { .s-sup .tm-grid { grid-template-columns: minmax(0, 1fr); } .s-sup .tm-foot .primary { flex: 1; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-in { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
 .s-sup .field { margin-top: 1rem; }
 .s-sup .field label, .s-sup .field .lab { display: block; margin-bottom: .375rem; font: 700 1rem var(--kanit); }
 .s-sup .field input, .s-sup .field select { width: 100%; }
@@ -169,12 +182,6 @@
 .s-sup .actions { display: flex; gap: .75rem; margin-top: 1.25rem; }
 .s-sup .actions .primary { flex: 1; }
 .s-sup .lock { margin-top: 1rem; color: var(--quiet); }
-.s-sup .prompt { color: var(--quiet); }
-.s-sup .prompt h2 { color: var(--ink); }
-.s-sup .prompt .primary { min-height: 2.75rem; padding: 0 1rem; border-radius: 10px; }
-/* nothing selected: the panel shrinks to one small button at the top and the table takes the room */
-.s-sup .layout.idle { grid-template-columns: minmax(0, 1fr) auto; }
-.s-sup .drawer.idle { padding: 0; background: none; border: 0; border-radius: 0; overflow: visible; }
 
 .s-sup .pair-lb { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .75rem; }
 .s-sup .pair-lb figure { margin: 0; }
@@ -226,17 +233,6 @@
   .s-sup.menu-open .scrim { opacity: 1; visibility: visible; }
 }
 
-/* the drawer becomes a panel over the table when the room left for the page (window minus an open docked menu) is under 1280px:
-   beside it, the table no longer fits its five columns. SupDay sets data-narrow on the .s-sup root. */
-.s-sup[data-narrow="1"] .layout { grid-template-columns: minmax(0, 1fr); }
-.s-sup[data-narrow="1"] .drawer {
-  position: fixed; z-index: 10; top: 0; right: 0; bottom: 0; width: min(26rem, 100%); max-height: none;
-  border-radius: 0; border-width: 0 0 0 2px; overflow-y: auto; padding: 1.25rem;
-}
-.s-sup[data-narrow="1"] .drawer[data-open="true"] { animation: panel-in .3s var(--ease); }
-.s-sup[data-narrow="1"] .drawer[data-open="false"] { display: none; }
-.s-sup[data-narrow="1"] .drawer .x { display: grid; }
-@keyframes panel-in { from { transform: translateX(100%); } to { transform: none; } }
 @keyframes pop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
 /* every pressable thing that can be pointed at turns gray under the mouse, and gets there smoothly */
@@ -272,7 +268,7 @@
 .s-sup .ddl li:focus-visible { outline: 4px solid var(--ink); outline-offset: -4px; }
 .s-sup .ddl li[aria-selected="true"]:focus-visible { outline-color: var(--yellow); }
 
-.s-sup .cal { position: absolute; z-index: 40; width: 21.5rem; max-width: calc(100vw - 1rem); box-sizing: border-box; padding: 1rem; background: #fff; border: 2px solid var(--ink); border-radius: 14px; color: var(--ink); }
+.s-sup .cal { position: absolute; z-index: 60; width: 21.5rem; max-width: calc(100vw - 1rem); box-sizing: border-box; padding: 1rem; background: #fff; border: 2px solid var(--ink); border-radius: 14px; color: var(--ink); }
 .s-sup .cal { animation: pop-in .16s var(--ease); }
 .s-sup .ch { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
 .s-sup .ct { flex: 1; text-align: center; font: 700 1.25rem/1.25 var(--kanit); }

@@ -28,7 +28,11 @@ const Dropdown = forwardRef(function Dropdown({ id, label, value, onChange, opti
     // measured with the "up" class removed, then set directly so focus below lands on the final position
     list.classList.remove('up');
     const r = list.getBoundingClientRect();
-    if (r.bottom > innerHeight - 8 && btn.current.getBoundingClientRect().top - r.height - 8 > 8) list.classList.add('up');
+    // inside the task box the list is clipped by the box's scrolling body, not by the window
+    const box = list.closest('.tm-body');
+    const lo = box ? Math.max(8, box.getBoundingClientRect().top) : 8;
+    const hi = box ? Math.min(innerHeight, box.getBoundingClientRect().bottom) : innerHeight;
+    if (r.bottom > hi - 8 && btn.current.getBoundingClientRect().top - r.height - 8 > lo) list.classList.add('up');
     const all = items();
     (all.find((li) => li.dataset.v === value) || all[0]).focus();
 

@@ -10,9 +10,9 @@ import { Icon, LABEL, NAMES, emptyText, fmtLate, lateMins, slot } from './ui';
 // a new task today starts at the next half hour; on another day, at 09:00
 const defaultTime = (date) => (date === today() ? hhmm(Math.min(Math.ceil((nowMins() + 1) / 30) * 30, 23 * 60 + 30)) : '09:00');
 
-function Field({ id, label, err, children }) {
+function Field({ id, label, err, wide, children }) {
   return (
-    <div className="field" data-err={err ? '' : undefined}>
+    <div className={wide ? 'field full' : 'field'} data-err={err ? '' : undefined}>
       <label htmlFor={id}>{label}</label>
       {children}
       {err && <p className="err" id={`e-${id}`} role="alert">{err}</p>}
@@ -39,8 +39,9 @@ function SubText({ t }) {
   );
 }
 
+// The task box: a modal over the page for creating, viewing and editing one task.
 // The parent keys this component by mode, selected task and a revision counter, so a remount is how the form is reset.
-const Drawer = forwardRef(function Drawer({ mode, task, date, branch, onSave, onClose, onCreate, onShot }, ref) {
+const Drawer = forwardRef(function Drawer({ mode, task, date, branch, onSave, onClose, onShot }, ref) {
   const root = useRef(null);
   const refs = { title: useRef(null), branch: useRef(null), tech: useRef(null), date: useRef(null), time: useRef(null), place: useRef(null) };
   const [vals, setVals] = useState(() => (task && mode === 'view'
@@ -53,8 +54,20 @@ const Drawer = forwardRef(function Drawer({ mode, task, date, branch, onSave, on
 
   useImperativeHandle(ref, () => ({
     focusTitle: () => root.current.querySelector('h2')?.focus(),
-    setDate: (iso) => setVals((s) => ({ ...s, date: iso })), // a half-typed new task follows the day being browsed
+    setDate: (iso) => setVals((s) => ({ ...s, date: iso })),
   }), []);
+
+  // modal: the page behind cannot be reached or scrolled while the box is open
+  useEffect(() => {
+    const page = document.querySelector('.s-sup .page');
+    const was = document.body.style.overflow;
+    if (page) page.setAttribute('inert', '');
+    document.body.style.overflow = 'hidden';
+    return () => {
+      if (page) page.removeAttribute('inert');
+      document.body.style.overflow = was;
+    };
+  }, []);
 
   useEffect(() => {
     const bad = ['title', 'branch', 'tech', 'date', 'time', 'place'].find((k) => errs[k]);
@@ -79,88 +92,90 @@ const Drawer = forwardRef(function Drawer({ mode, task, date, branch, onSave, on
 
   const create = mode === 'create';
   const t = create ? null : task;
+  if (!create && !t) return null;
   const locked = !!t && t.status === 'done';
   const inv = (k) => ({ invalid: !!errs[k], describedBy: errs[k] ? `e-f-${k}` : undefined });
-  const closeBtn = <button type="button" className="x" aria-label="ปิด" onClick={onClose}><Icon n="close" /></button>;
 
-  let body;
-  if (!create && !t) {
-    body = (
-      <div className="prompt">
-        <button type="button" className="primary" onClick={onCreate} title="แตะแถวในตารางเพื่อดูรายละเอียด แก้ไข หรือย้ายไปให้ช่างคนอื่น"><Icon n="plus" />สร้างภารกิจ</button>
+  const branchOpts = (create ? [{ value: '', label: 'เลือกสาขา' }] : []).concat(BRANCHES);
+  // only the chosen branch's technicians; the placeholder shows while none is chosen (a new task, or the branch just changed)
+  const techOpts = (create || !vals.tech ? [{ value: '', label: 'เลือกช่าง' }] : []).concat(TECHS.filter((n) => !vals.branch || TECH_BRANCH[n] === vals.branch).map((n) => ({ value: n, label: n })));
+  const fig = (k) => {
+    const s = slot(t, k);
+    return (
+      <div>
+        <span className="lab">{NAMES[k]}{t[k + 'At'] ? ' · ' + t[k + 'At'] : ''}</span>
+        {s === 'ok'
+          ? <button type="button" aria-label={`ดูรูป${NAMES[k]}ใหญ่ของ ${t.title}`} onClick={() => onShot(t.id)}><img src={photoURI(t[k])} alt={`รูปตัวอย่าง${NAMES[k]} ${t.title}`} /></button>
+          : <div className={'noimg' + (s === 'miss' ? ' miss' : '')}>{emptyText(t, k)}</div>}
       </div>
     );
-  } else {
-    const branchOpts = (create ? [{ value: '', label: 'เลือกสาขา' }] : []).concat(BRANCHES);
-    // only the chosen branch's technicians; the placeholder shows while none is chosen (a new task, or the branch just changed)
-    const techOpts = (create || !vals.tech ? [{ value: '', label: 'เลือกช่าง' }] : []).concat(TECHS.filter((n) => !vals.branch || TECH_BRANCH[n] === vals.branch).map((n) => ({ value: n, label: n })));
-    const fig = (k) => {
-      const s = slot(t, k);
-      return (
-        <div>
-          <span className="lab">{NAMES[k]}{t[k + 'At'] ? ' · ' + t[k + 'At'] : ''}</span>
-          {s === 'ok'
-            ? <button type="button" aria-label={`ดูรูป${NAMES[k]}ใหญ่ของ ${t.title}`} onClick={() => onShot(t.id)}><img src={photoURI(t[k])} alt={`รูปตัวอย่าง${NAMES[k]} ${t.title}`} /></button>
-            : <div className={'noimg' + (s === 'miss' ? ' miss' : '')}>{emptyText(t, k)}</div>}
-        </div>
-      );
-    };
-    body = (
-      <form id="form" noValidate onSubmit={submit}>
-        <div className="dhead">
-          {create
-            ? <h2 tabIndex={-1}>สร้างภารกิจ</h2>
-            : <div><h2 tabIndex={-1}>{t.title}</h2><p className="sub" id="dsub"><SubText t={t} /></p></div>}
-          {closeBtn}
-        </div>
-        {!create && <p className="stat" data-s={t.status}>{LABEL[t.status]}</p>}
-
-        <Field id="f-title" label="ภารกิจ" err={errs.title}>
-          <input type="text" id="f-title" name="title" ref={refs.title} value={vals.title} onChange={(e) => set('title')(e.target.value)}
-            autoComplete="off" disabled={locked} aria-invalid={errs.title ? 'true' : undefined} aria-describedby={inv('title').describedBy} />
-          {create && (
-            <div className="quick" role="group" aria-label="ภารกิจที่ใช้บ่อย">
-              {COMMON.map((c) => (
-                <button type="button" key={c} onClick={() => { set('title')(c); (vals.branch ? refs.tech : refs.branch).current.focus(); }}>{c}</button>
-              ))}
-            </div>
-          )}
-        </Field>
-        <Field id="f-branch" label="สาขา" err={errs.branch}>
-          <Dropdown id="f-branch" ref={refs.branch} label="สาขา" value={vals.branch} onChange={setBranch} options={branchOpts} disabled={locked} {...inv('branch')} />
-        </Field>
-        <Field id="f-tech" label="ช่าง" err={errs.tech}>
-          <Dropdown id="f-tech" ref={refs.tech} label="ช่าง" value={vals.tech} onChange={set('tech')} options={techOpts} disabled={locked} {...inv('tech')} />
-        </Field>
-        <Field id="f-date" label="วันที่" err={errs.date}>
-          <DateField id="f-date" ref={refs.date} label="วันที่" value={vals.date} onChange={set('date')} min={MIN_DAY} max={MAX_DAY} disabled={locked} {...inv('date')} />
-        </Field>
-        <Field id="f-time" label="เวลา" err={errs.time}>
-          <input type="time" id="f-time" name="time" ref={refs.time} value={vals.time} onChange={(e) => set('time')(e.target.value)}
-            disabled={locked} aria-invalid={errs.time ? 'true' : undefined} aria-describedby={inv('time').describedBy} />
-        </Field>
-        <Field id="f-place" label="สถานที่" err={errs.place}>
-          <input type="text" id="f-place" name="place" list="places" ref={refs.place} value={vals.place} onChange={(e) => set('place')(e.target.value)}
-            autoComplete="off" disabled={locked} aria-invalid={errs.place ? 'true' : undefined} aria-describedby={inv('place').describedBy} />
-        </Field>
-
-        {!create && (
-          <div className="photo">
-            <div className="pair2">{fig('before')}{fig('after')}</div>
-            {(t.before || t.after) && <small>รูปตัวอย่าง · แตะเพื่อดูรูปก่อนและหลังคู่กัน</small>}
-          </div>
-        )}
-        {locked && <p className="lock">งานเสร็จแล้ว แก้ไขไม่ได้</p>}
-        <div className="actions">
-          {!locked && <button type="submit" className="primary">{create ? 'มอบหมาย' : 'บันทึก'}</button>}
-          <button type="button" className="secondary" onClick={onClose}>{create ? 'ยกเลิก' : 'ปิด'}</button>
-        </div>
-      </form>
-    );
-  }
+  };
 
   return (
-    <aside id="drawer" className={'drawer' + (!create && !t ? ' idle' : '')} ref={root} data-open={String(!!mode)} aria-label="รายละเอียดภารกิจ">{body}</aside>
+    <div className="tm-scrim">
+      <div className="tm" id="drawer" ref={root} role="dialog" aria-modal="true" aria-label={create ? 'สร้างภารกิจ' : t.title} data-open="true">
+        <form id="form" noValidate onSubmit={submit}>
+          <div className="tm-head dhead">
+            {create
+              ? <h2 tabIndex={-1}>สร้างภารกิจ</h2>
+              : (
+                <div>
+                  <h2 tabIndex={-1}>{t.title}</h2>
+                  <p className="sub" id="dsub"><SubText t={t} /></p>
+                </div>
+              )}
+            <button type="button" className="x" aria-label="ปิด" onClick={onClose}><Icon n="close" /></button>
+          </div>
+
+          <div className="tm-body">
+            {!create && <p className="stat" data-s={t.status}>{LABEL[t.status]}</p>}
+            <div className="tm-grid">
+              <Field id="f-title" label="ภารกิจ" err={errs.title} wide>
+                <input type="text" id="f-title" name="title" ref={refs.title} value={vals.title} onChange={(e) => set('title')(e.target.value)}
+                  autoComplete="off" disabled={locked} aria-invalid={errs.title ? 'true' : undefined} aria-describedby={inv('title').describedBy} />
+                {create && (
+                  <div className="quick" role="group" aria-label="ภารกิจที่ใช้บ่อย">
+                    {COMMON.map((c) => (
+                      <button type="button" key={c} onClick={() => { set('title')(c); (vals.branch ? refs.tech : refs.branch).current.focus(); }}>{c}</button>
+                    ))}
+                  </div>
+                )}
+              </Field>
+              <Field id="f-branch" label="สาขา" err={errs.branch}>
+                <Dropdown id="f-branch" ref={refs.branch} label="สาขา" value={vals.branch} onChange={setBranch} options={branchOpts} disabled={locked} {...inv('branch')} />
+              </Field>
+              <Field id="f-tech" label="ช่าง" err={errs.tech}>
+                <Dropdown id="f-tech" ref={refs.tech} label="ช่าง" value={vals.tech} onChange={set('tech')} options={techOpts} disabled={locked} {...inv('tech')} />
+              </Field>
+              <Field id="f-date" label="วันที่" err={errs.date}>
+                <DateField id="f-date" ref={refs.date} label="วันที่" value={vals.date} onChange={set('date')} min={MIN_DAY} max={MAX_DAY} disabled={locked} {...inv('date')} />
+              </Field>
+              <Field id="f-time" label="เวลา" err={errs.time}>
+                <input type="time" id="f-time" name="time" ref={refs.time} value={vals.time} onChange={(e) => set('time')(e.target.value)}
+                  disabled={locked} aria-invalid={errs.time ? 'true' : undefined} aria-describedby={inv('time').describedBy} />
+              </Field>
+              <Field id="f-place" label="สถานที่" err={errs.place} wide>
+                <input type="text" id="f-place" name="place" list="places" ref={refs.place} value={vals.place} onChange={(e) => set('place')(e.target.value)}
+                  autoComplete="off" disabled={locked} aria-invalid={errs.place ? 'true' : undefined} aria-describedby={inv('place').describedBy} />
+              </Field>
+            </div>
+
+            {!create && (
+              <div className="photo">
+                <div className="pair2">{fig('before')}{fig('after')}</div>
+                {(t.before || t.after) && <small>รูปตัวอย่าง · แตะเพื่อดูรูปก่อนและหลังคู่กัน</small>}
+              </div>
+            )}
+            {locked && <p className="lock">งานเสร็จแล้ว แก้ไขไม่ได้</p>}
+          </div>
+
+          <div className="tm-foot actions">
+            <button type="button" className="secondary" onClick={onClose}>{create ? 'ยกเลิก' : 'ปิด'}</button>
+            {!locked && <button type="submit" className="primary">{create ? 'มอบหมาย' : 'บันทึก'}</button>}
+          </div>
+        </form>
+      </div>
+    </div>
   );
 });
 
