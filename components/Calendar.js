@@ -89,7 +89,7 @@ export default function Calendar({ anchor, value, onPick, onClose, min = MIN_DAY
   for (let i = 0; i < 42; i++) {
     const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
     const s = isoOf(dt);
-    const cls = 'cd' + (dt.getMonth() !== m ? ' out' : '') + (s === v ? ' sel' : '') + (s === now ? ' now' : '');
+    const cls = 'cd' + (dt.getMonth() !== m ? ' out' : '') + (s === v ? ' picked' : '') + (s === now ? ' now' : '');
     cells.push(
       <button key={i} type="button" className={cls} data-d={s} tabIndex={s === focus ? 0 : -1} disabled={s < min || s > max}
         aria-pressed={s === v ? 'true' : undefined} aria-current={s === now ? 'date' : undefined}

@@ -276,9 +276,10 @@
 .s-sup .cg { gap: 2px; }
 .s-sup .cd { min-height: 2.75rem; padding: 0; background: none; border: 2px solid transparent; border-radius: 10px; color: var(--ink); font: 500 1rem 'Noto Sans Thai', system-ui, sans-serif; font-variant-numeric: tabular-nums; cursor: pointer; }
 .s-sup .cd.out { color: var(--quiet); }
-.s-sup .cd:hover:not(:disabled):not(.sel) { background: var(--hover); }
+.s-sup .cd:hover:not(:disabled):not(.picked) { background: var(--hover); }
 .s-sup .cd.now { border-color: var(--ink); font-weight: 700; }
-.s-sup .cd.sel { background: var(--ink); color: #fff; font-family: var(--kanit); font-weight: 700; }
+/* "picked", not "sel": .sel is the technician-filter label (margin-left:auto, display:flex), which shrank the chosen day to a thin bar */
+.s-sup .cd.picked { background: var(--ink); color: #fff; font-family: var(--kanit); font-weight: 700; }
 .s-sup .cd:disabled { color: var(--quiet); border-style: dashed; border-color: var(--quiet); cursor: not-allowed; }
 .s-sup .cf { display: flex; justify-content: space-between; gap: .75rem; margin-top: .75rem; }
 .s-sup .cb { min-height: 2.75rem; padding: 0 1rem; background: transparent; border: 2px solid var(--ink); border-radius: 10px; color: var(--ink); font: 700 1rem var(--kanit); cursor: pointer; }
