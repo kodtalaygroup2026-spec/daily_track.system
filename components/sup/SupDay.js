@@ -274,7 +274,7 @@ export default function SupDay({ user }) {
             <button type="button" id="logout" className="ghost" onClick={logOut}>ออกจากระบบ</button>
           </header>
 
-          <div className="layout">
+          <div className={'layout' + (!ui.mode ? ' idle' : '')}>
             <main>
               <div className="daybar">
                 <div>

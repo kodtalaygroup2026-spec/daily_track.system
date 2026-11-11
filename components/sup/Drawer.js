@@ -87,9 +87,7 @@ const Drawer = forwardRef(function Drawer({ mode, task, date, branch, onSave, on
   if (!create && !t) {
     body = (
       <div className="prompt">
-        <h2>เลือกภารกิจ</h2>
-        <p className="sub">แตะแถวในตารางเพื่อดูรายละเอียด แก้ไข หรือย้ายไปให้ช่างคนอื่น</p>
-        <button type="button" className="primary" onClick={onCreate}><Icon n="plus" />สร้างภารกิจ</button>
+        <button type="button" className="primary" onClick={onCreate} title="แตะแถวในตารางเพื่อดูรายละเอียด แก้ไข หรือย้ายไปให้ช่างคนอื่น"><Icon n="plus" />สร้างภารกิจ</button>
       </div>
     );
   } else {
@@ -162,7 +160,7 @@ const Drawer = forwardRef(function Drawer({ mode, task, date, branch, onSave, on
   }
 
   return (
-    <aside id="drawer" className="drawer" ref={root} data-open={String(!!mode)} aria-label="รายละเอียดภารกิจ">{body}</aside>
+    <aside id="drawer" className={'drawer' + (!create && !t ? ' idle' : '')} ref={root} data-open={String(!!mode)} aria-label="รายละเอียดภารกิจ">{body}</aside>
   );
 });
 

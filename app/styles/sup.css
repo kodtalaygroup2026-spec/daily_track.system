@@ -171,7 +171,10 @@
 .s-sup .lock { margin-top: 1rem; color: var(--quiet); }
 .s-sup .prompt { color: var(--quiet); }
 .s-sup .prompt h2 { color: var(--ink); }
-.s-sup .prompt .primary { margin-top: 1.25rem; }
+.s-sup .prompt .primary { min-height: 2.75rem; padding: 0 1rem; border-radius: 10px; }
+/* nothing selected: the panel shrinks to one small button at the top and the table takes the room */
+.s-sup .layout.idle { grid-template-columns: minmax(0, 1fr) auto; }
+.s-sup .drawer.idle { padding: 0; background: none; border: 0; border-radius: 0; overflow: visible; }
 
 .s-sup .pair-lb { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .75rem; }
 .s-sup .pair-lb figure { margin: 0; }
