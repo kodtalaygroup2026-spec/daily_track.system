@@ -251,7 +251,7 @@ function renderDrawer(errs, vals) {
 function render() { renderChrome(); renderRows(); renderDrawer(); }
 
 /* ---- actions ---- */
-const narrow = () => matchMedia('(max-width: 1279px)').matches;
+const narrow = () => document.body.dataset.narrow === '1'; // set by applyLayout(): the drawer is a panel over the table
 
 function open(id, from) {
   if (UI.mode === 'view' && UI.sel === id && !from) return; // re-clicking the open row must not wipe unsaved edits
@@ -406,6 +406,40 @@ function tick() {
 setInterval(tick, 15000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
 $('#lbClose').addEventListener('click', () => $('#lightbox').close());
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && UI.mode && !$('#lightbox').open) closeDrawer(); });
+
+/* ---- left menu: docked beside the page from 1280px, a panel over it below. The docked choice is remembered. ---- */
+const MENU_KEY = 'dailytrack.menu.v1', MENU_W = 240;
+const docked = () => innerWidth >= 1280;
+const menuIsOpen = () => document.body.classList.contains('menu-open');
+function applyLayout() {
+  // an open docked menu takes 15rem from the page
+  document.body.dataset.narrow = innerWidth - (docked() && menuIsOpen() ? MENU_W : 0) < 1280 ? '1' : '';
+}
+function setMenu(open) {
+  document.body.classList.toggle('menu-open', open);
+  $('#menuBtn').setAttribute('aria-expanded', String(open));
+  if (docked()) { try { localStorage.setItem(MENU_KEY, open ? 'open' : 'closed'); } catch (e) { /* not remembered */ } }
+  applyLayout();
+}
+function savedMenu() { try { return localStorage.getItem(MENU_KEY) !== 'closed'; } catch (e) { return true; } }
+let wasDocked = docked();
+setMenu(wasDocked ? savedMenu() : false);
+$('#menuBtn').addEventListener('click', () => {
+  const open = !menuIsOpen();
+  setMenu(open);
+  if (open && !docked()) $('#menu a').focus(); // a panel over the page takes focus; a docked menu leaves it on the button
+});
+$('#menuClose').addEventListener('click', () => { setMenu(false); $('#menuBtn').focus(); });
+$('#scrim').addEventListener('click', () => { setMenu(false); $('#menuBtn').focus(); });
+addEventListener('resize', () => {
+  if (docked() !== wasDocked) { wasDocked = docked(); setMenu(wasDocked ? savedMenu() : false); } // crossing 1280px: panel closes, docked menu comes back
+  else applyLayout();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (menuIsOpen() && !docked()) { setMenu(false); $('#menuBtn').focus(); return; }
+  if (UI.mode && !$('#lightbox').open) closeDrawer();
+});
 
 buildControls(); load(); render();

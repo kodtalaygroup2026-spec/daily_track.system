@@ -20,9 +20,36 @@
   <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-cal" viewBox="0 0 24 24"><path d="M4 6.5h16V20H4zM4 11h16M8.5 3.5v5M15.5 3.5v5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
 </svg>
 
+<div class="page">
+<nav id="menu" class="menu" aria-label="เมนูหัวหน้า">
+  <div class="mhead">
+    <span class="brand">เมนู</span>
+    <button type="button" class="x" id="menuClose" aria-label="ปิดเมนู"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+  </div>
+  <p class="mgroup">งานประจำวัน</p>
+  <ul>
+    <li><a href="supervisor.html" class="mitem" aria-current="page">ภารกิจรายวัน</a></li>
+    <li><span class="mitem soon" aria-disabled="true">รายงานประจำวัน<small>เร็วๆ นี้</small></span></li>
+  </ul>
+  <p class="mgroup">ตั้งค่า</p>
+  <ul>
+    <li><span class="mitem soon" aria-disabled="true">พนักงานและรหัสพนักงาน<small>เร็วๆ นี้</small></span></li>
+    <li><span class="mitem soon" aria-disabled="true">สิทธิ์การใช้งาน<small>เร็วๆ นี้</small></span></li>
+    <li><span class="mitem soon" aria-disabled="true">ตั้งค่าอื่นๆ<small>เร็วๆ นี้</small></span></li>
+  </ul>
+  <p class="mgroup">บัญชีของฉัน</p>
+  <ul>
+    <li><a href="profile.html" class="mitem">โปรไฟล์</a></li>
+  </ul>
+</nav>
+<div class="scrim" id="scrim"></div>
+<div class="content">
+
 <header class="bar">
+  <button type="button" id="menuBtn" class="ghost" aria-controls="menu" aria-expanded="true"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg>เมนู</button>
   <span class="brand">Daily Track</span>
   <p class="clock">เวลาตอนนี้ <b id="clock"></b></p>
   <button type="button" id="create" class="primary"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>สร้างภารกิจ</button>
@@ -77,6 +104,9 @@
   </main>
 
   <aside id="drawer" class="drawer" aria-label="รายละเอียดภารกิจ"></aside>
+</div>
+
+</div>
 </div>
 
 <dialog id="lightbox" aria-labelledby="lbCap">
