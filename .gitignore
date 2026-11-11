@@ -8,3 +8,10 @@
 .impeccable/review/
 .impeccable/questions/
 .impeccable/hook.cache.json
+
+# Next.js and Node
+node_modules/
+.next/
+.next-*/
+*.tsbuildinfo
+next-env.d.ts

@@ -1,0 +1,70 @@
+/* Generated from the static site by scripts/scope-css.cjs, then maintained by hand. Scope: .s-auth */
+/* ---- from legacy/login.css ---- */
+/* Tokens duplicated on purpose, like supervisor.css: each page stands alone. */
+.s-auth {
+  --ink: #14181B;
+  --ground: #EDF0EE;
+  --quiet: #3F4945;
+  --red: #D6261E;
+  --yellow: #F5B800;
+  --kanit: 'Kanit', 'Noto Sans Thai', sans-serif;
+  color-scheme: light;
+}
+
+.s-auth * { box-sizing: border-box; }
+.s-auth { scrollbar-color: var(--ink) var(--ground); }
+.s-auth {
+  margin: 0; min-height: 100vh; background: var(--ground); color: var(--ink);
+  font: 500 1rem/1.4 'Noto Sans Thai', system-ui, sans-serif; caret-color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+.s-auth ::selection { background: var(--yellow); color: var(--ink); }
+.s-auth h1, .s-auth p { margin: 0; }
+.s-auth button, .s-auth input { font: inherit; color: inherit; }
+.s-auth :focus-visible { outline: 4px solid var(--ink); outline-offset: 3px; }
+
+/* three steps: title 2.25rem / brand 1.25rem / detail 1rem */
+.s-auth .wrap {
+  max-width: 26rem; margin: 0 auto;
+  padding: max(2rem, env(safe-area-inset-top)) 1rem calc(2rem + env(safe-area-inset-bottom));
+}
+.s-auth .brand { font: 700 1.25rem var(--kanit); }
+.s-auth h1 { margin-top: 2rem; font: 700 2.25rem/1.1 var(--kanit); }
+.s-auth .lead { margin-top: .5rem; color: var(--quiet); }
+
+.s-auth form { margin-top: 1.75rem; padding: 1.25rem; background: #fff; border: 2px solid var(--ink); border-radius: 14px; }
+.s-auth .field + .field { margin-top: 1rem; }
+.s-auth label { display: block; margin-bottom: .375rem; font: 700 1rem var(--kanit); }
+.s-auth input {
+  width: 100%; min-height: 3.5rem; padding: 0 1rem;
+  background: #fff; border: 2px solid var(--ink); border-radius: 12px;
+}
+.s-auth form[data-err] input:focus { border-width: 4px; padding: 0 calc(1rem - 2px); }
+
+.s-auth .err { min-height: 1.4em; margin-top: 1rem; color: var(--red); font-weight: 700; }
+.s-auth .primary {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 3.5rem; margin-top: .5rem;
+  background: var(--ink); color: #fff; border: 0; border-radius: 12px; font: 700 1.25rem var(--kanit); cursor: pointer;
+}
+.s-auth .primary:active { background: var(--quiet); }
+
+.s-auth .note { margin-top: 1.25rem; color: var(--quiet); }
+.s-auth .note b { color: var(--ink); font-family: var(--kanit); }
+
+@media (prefers-reduced-motion: reduce) { .s-auth *, .s-auth *::before, .s-auth *::after { animation: none !important; transition: none !important; } }
+
+/* ---- from legacy/profile.css ---- */
+/* extends login.css: same ground, fields and primary button */
+.s-auth .back { display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--ink); font: 700 1.25rem var(--kanit); text-underline-offset: .2em; }
+.s-auth .wrap h1 { margin-top: 1rem; }
+.s-auth .info { margin: 1.25rem 0 0; }
+.s-auth .info div { display: flex; justify-content: space-between; gap: 1rem; padding: .75rem 0; border-top: 2px solid var(--ground); }
+.s-auth .info dt { color: var(--quiet); }
+.s-auth .info dd { margin: 0; font: 700 1rem var(--kanit); }
+.s-auth .msg { min-height: 1.4em; margin-top: 1rem; font-weight: 700; }
+.s-auth .msg.bad { color: var(--red); }
+.s-auth .secondary {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 3.5rem; margin-top: 1rem;
+  background: transparent; border: 2px solid var(--ink); border-radius: 12px; font: 700 1rem var(--kanit); cursor: pointer;
+}
+
