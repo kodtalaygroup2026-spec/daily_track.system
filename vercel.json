@@ -1,7 +1,7 @@
 {
   "routes": [
-    { "src": "^/(\\.impeccable|\\.claude|\\.git)(/.*)?$", "status": 404 },
-    { "src": "^/(PRODUCT|DESIGN)\\.md$", "status": 404 },
+    { "src": "^/(\\.impeccable|\\.claude|\\.git)(/.*)?$", "dest": "/not-found", "status": 404 },
+    { "src": "^/(PRODUCT|DESIGN)\\.md$", "dest": "/not-found", "status": 404 },
     { "handle": "filesystem" }
   ]
 }
