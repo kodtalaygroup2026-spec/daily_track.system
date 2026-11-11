@@ -266,9 +266,6 @@ list.addEventListener('keydown', (e) => {
   }
 });
 
-function restart(next) { tasks = next; queue = []; pending = null; busy = false; hideToast(); save(); render(); }
-$('#reset').addEventListener('click', () => restart(SAMPLE()));
-$('#empty').addEventListener('click', () => restart([]));
 window.addEventListener('online', () => {
   sentCount = queue.length; queue = []; save(); renderNet();
   clearTimeout(sentTimer);
