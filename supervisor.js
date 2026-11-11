@@ -1,7 +1,6 @@
 'use strict';
 // Prototype: sample data only, kept in this browser. Changes do not reach technician phones.
-const KEY = 'dailytrack.sup.v2';
-const NOW0 = 11 * 60 + 20; // the sample day is frozen at 11:20; "+30 น." moves it so the late rule can be seen
+const KEY = 'dailytrack.sup.v3';
 const TECHS = ['สมชาย ป.', 'วิชัย ก.', 'ประเสริฐ ท.', 'อนุชา ส.', 'สุรชัย ม.', 'ธนากร พ.', 'ณัฐพล ว.', 'กิตติ ร.'];
 const PLACES = ['อาคาร A', 'อาคาร B', 'อาคาร C', 'อาคาร D', 'ลานจอดรถ', 'โรงงาน 1', 'โรงงาน 2', 'ห้องประชุม 2'];
 const COMMON = ['ล้างแอร์', 'ตรวจปั๊มน้ำ', 'เปลี่ยนหลอดไฟ', 'ตรวจสายไฟ', 'ซ่อมประตู'];
@@ -11,33 +10,50 @@ const FILTERS = [['all', 'ทั้งหมด'], ['todo', 'รอทำ'], ['d
 const NAMES = { before: 'ก่อนเริ่ม', after: 'หลังเสร็จ' };
 const HEADS = [['status', 'สถานะ'], ['time', 'เวลา'], ['title', 'ภารกิจ'], ['tech', 'ช่าง']];
 
-// photos: before = taken to start the task, after = taken to finish it (both required by the technician app)
-const T = (id, time, title, tech, place, status, x = {}) => ({ id, time, title, tech, place, status, before: null, after: null, beforeAt: null, afterAt: null, ...x });
-const SAMPLE = () => ({
-  now: NOW0, nextId: 15,
-  tasks: [
-    T(1, '08:00', 'ล้างแอร์ ห้อง 302', 'สมชาย ป.', 'อาคาร B', 'done', { before: 'a', beforeAt: '08:02', after: 'a2', afterAt: '08:41' }),
-    T(2, '08:30', 'ตรวจถังดับเพลิง', 'สุรชัย ม.', 'อาคาร C', 'done', { before: 'b', beforeAt: '08:33', after: 'b2', afterAt: '08:58' }),
-    T(3, '09:00', 'ซ่อมมือจับประตู', 'กิตติ ร.', 'อาคาร B', 'done', { before: 'b', beforeAt: '09:04' }), // finished, after photo missing
-    T(4, '09:30', 'ซ่อมประตูเหล็ก', 'วิชัย ก.', 'อาคาร D', 'doing', { before: 'a', beforeAt: '09:36' }),
-    T(5, '10:30', 'เปลี่ยนเบรกเกอร์', 'สมชาย ป.', 'ตู้ไฟชั้น 2 อาคาร A', 'doing', { before: 'b', beforeAt: '10:34' }),
-    T(6, '11:00', 'เปลี่ยนหลอดไฟ', 'ประเสริฐ ท.', 'ลานจอดรถ', 'todo'),
-    T(7, '11:00', 'ตรวจแอร์', 'อนุชา ส.', 'ห้องประชุม 2', 'doing'), // started, before photo missing
-    T(8, '11:30', 'ตรวจตู้ควบคุม', 'สุรชัย ม.', 'อาคาร C', 'todo'),
-    T(9, '13:00', 'ตรวจปั๊มน้ำ', 'สมชาย ป.', 'โรงงาน 2', 'todo'),
-    T(10, '13:00', 'ตรวจระบบน้ำ', 'ณัฐพล ว.', 'อาคาร A', 'todo'),
-    T(11, '13:30', 'ซ่อมไฟทางเดิน', 'ธนากร พ.', 'ลานจอดรถ', 'todo'),
-    T(12, '14:00', 'ล้างแอร์ ห้อง 401', 'อนุชา ส.', 'อาคาร B', 'todo'),
-    T(13, '15:00', 'เช็คสายไฟชั้น 5', 'อนุชา ส.', 'อาคาร C', 'todo'),
-    T(14, '16:00', 'ตรวจมาตรวัดน้ำ', 'ประเสริฐ ท.', 'โรงงาน 1', 'todo'),
-  ],
-});
-
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const icon = (n) => `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 const mins = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
 const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+
+/* ---- real clock and calendar days. A day is an ISO string "YYYY-MM-DD" in the device's own time zone. ---- */
+const MIN_DAY = '2000-01-01', MAX_DAY = '2099-12-31'; // a typed two-digit year would otherwise land in 19xx
+const pad = (n) => String(n).padStart(2, '0');
+const isoOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => isoOf(new Date());
+const nowMins = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+const toDate = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
+const dayNum = (iso) => { const [y, m, d] = iso.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 864e5); };
+const addDays = (iso, n) => { const d = toDate(iso); d.setDate(d.getDate() + n); return isoOf(d); };
+// minutes from a task's scheduled moment until now (negative while it is still in the future)
+const minsSince = (date, time) => (dayNum(today()) - dayNum(date)) * 1440 + nowMins() - mins(time);
+
+// photos: before = taken to start the task, after = taken to finish it (both required by the technician app)
+const T = (id, time, title, tech, place, status, x = {}) => ({ id, date: today(), time, title, tech, place, status, before: null, after: null, beforeAt: null, afterAt: null, ...x });
+// the sample day is laid out around the current time, so some tasks are always done, doing, late or still ahead
+const SAMPLE = () => {
+  const base = Math.min(Math.max(Math.floor(nowMins() / 30) * 30, 180), 1229); // keeps every offset (-180..+210) inside the day
+  const at = (off) => hhmm(base + off);
+  return {
+    nextId: 15,
+    tasks: [
+      T(1, at(-180), 'ล้างแอร์ ห้อง 302', 'สมชาย ป.', 'อาคาร B', 'done', { before: 'a', beforeAt: at(-178), after: 'a2', afterAt: at(-139) }),
+      T(2, at(-150), 'ตรวจถังดับเพลิง', 'สุรชัย ม.', 'อาคาร C', 'done', { before: 'b', beforeAt: at(-147), after: 'b2', afterAt: at(-122) }),
+      T(3, at(-120), 'ซ่อมมือจับประตู', 'กิตติ ร.', 'อาคาร B', 'done', { before: 'b', beforeAt: at(-116) }), // finished, after photo missing
+      T(4, at(-90), 'ซ่อมประตูเหล็ก', 'วิชัย ก.', 'อาคาร D', 'doing', { before: 'a', beforeAt: at(-84) }),
+      T(5, at(-60), 'เปลี่ยนเบรกเกอร์', 'สมชาย ป.', 'ตู้ไฟชั้น 2 อาคาร A', 'doing', { before: 'b', beforeAt: at(-56) }),
+      T(6, at(-30), 'เปลี่ยนหลอดไฟ', 'ประเสริฐ ท.', 'ลานจอดรถ', 'todo'),
+      T(7, at(-30), 'ตรวจแอร์', 'อนุชา ส.', 'ห้องประชุม 2', 'doing'), // started, before photo missing
+      T(8, at(0), 'ตรวจตู้ควบคุม', 'สุรชัย ม.', 'อาคาร C', 'todo'),
+      T(9, at(30), 'ตรวจปั๊มน้ำ', 'สมชาย ป.', 'โรงงาน 2', 'todo'),
+      T(10, at(30), 'ตรวจระบบน้ำ', 'ณัฐพล ว.', 'อาคาร A', 'todo'),
+      T(11, at(60), 'ซ่อมไฟทางเดิน', 'ธนากร พ.', 'ลานจอดรถ', 'todo'),
+      T(12, at(90), 'ล้างแอร์ ห้อง 401', 'อนุชา ส.', 'อาคาร B', 'todo'),
+      T(13, at(150), 'เช็คสายไฟชั้น 5', 'อนุชา ส.', 'อาคาร C', 'todo'),
+      T(14, at(210), 'ตรวจมาตรวัดน้ำ', 'ประเสริฐ ท.', 'โรงงาน 1', 'todo'),
+    ],
+  };
+};
 
 // Synthetic sample photos, drawn here; every one is labelled "รูปตัวอย่าง" where it is shown.
 const PHOTOS = {
@@ -55,19 +71,26 @@ const issue = (t) => slot(t, 'before') === 'miss' || slot(t, 'after') === 'miss'
 const emptyText = (t, k) => (slot(t, k) === 'miss' ? 'ยังไม่ได้รับรูป' : t.status === 'todo' ? 'ยังไม่เริ่มงาน' : 'รอช่างจบงาน');
 
 let S, toastTimer = null;
-const UI = { filter: 'all', tech: '', sort: { key: 'time', dir: 1 }, sel: null, mode: null, lastFocus: null };
+const UI = { date: today(), filter: 'all', tech: '', sort: { key: 'time', dir: 1 }, sel: null, mode: null, lastFocus: null };
 
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(KEY));
-    if (d && Array.isArray(d.tasks)) { S = d; return; }
+    // a sample saved on an earlier day has nothing left for today: start a fresh one
+    if (d && Array.isArray(d.tasks) && d.tasks.some((t) => t.date >= today())) { S = d; return; }
   } catch (e) { /* storage unavailable: use the sample */ }
   S = SAMPLE();
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } }
 
-function lateMins(t) { return t.status !== 'done' && S.now > mins(t.time) ? S.now - mins(t.time) : 0; }
-function dur(m) { m = Math.max(0, m); return m < 60 ? `${m} น.` : `${Math.floor(m / 60)} ชม.${m % 60 ? ' ' + (m % 60) + ' น.' : ''}`; }
+const dayTasks = () => S.tasks.filter((t) => t.date === UI.date);
+function lateMins(t) { return t.status === 'done' ? 0 : Math.max(0, minsSince(t.date, t.time)); }
+function dur(m) {
+  m = Math.max(0, m);
+  const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), n = m % 60;
+  if (d) return `${d} วัน${h ? ' ' + h + ' ชม.' : ''}`;
+  return h ? `${h} ชม.${n ? ' ' + n + ' น.' : ''}` : `${m} น.`;
+}
 function fmtLate(m) { return 'เลย ' + dur(m); }
 
 function visible() {
@@ -78,7 +101,7 @@ function visible() {
     title: (a, b) => a.title.localeCompare(b.title, 'th'),
     tech: (a, b) => a.tech.localeCompare(b.tech, 'th') || mins(a.time) - mins(b.time),
   }[key];
-  return S.tasks.filter((t) => (!UI.tech || t.tech === UI.tech) && (UI.filter === 'all' || (UI.filter === 'photo' ? issue(t) : t.status === UI.filter)))
+  return dayTasks().filter((t) => (!UI.tech || t.tech === UI.tech) && (UI.filter === 'all' || (UI.filter === 'photo' ? issue(t) : t.status === UI.filter)))
     .sort((a, b) => cmp(a, b) * dir);
 }
 
@@ -93,13 +116,20 @@ function buildControls() {
   });
 }
 
-function renderChrome() {
-  const now = new Date();
-  const th = (o) => new Intl.DateTimeFormat('th-TH-u-ca-buddhist', o).format(now);
-  $('#date').textContent = th({ weekday: 'long' }) + ' ' + th({ day: 'numeric', month: 'short' });
-  $('#clock').textContent = hhmm(S.now);
+function relLabel() {
+  const diff = dayNum(UI.date) - dayNum(today());
+  return diff === 0 ? 'วันนี้' : diff === 1 ? 'พรุ่งนี้' : diff === -1 ? 'เมื่อวาน' : diff > 1 ? `อีก ${diff} วัน` : `ย้อนหลัง ${-diff} วัน`;
+}
 
-  const pool = S.tasks.filter((t) => !UI.tech || t.tech === UI.tech);
+function renderChrome() {
+  const th = (o) => new Intl.DateTimeFormat('th-TH-u-ca-buddhist', o).format(toDate(UI.date));
+  $('#date').textContent = th({ weekday: 'long' }) + ' ' + th({ day: 'numeric', month: 'short', year: 'numeric' });
+  $('#rel').textContent = relLabel();
+  $('#day').value = UI.date;
+  $('#today').setAttribute('aria-disabled', String(UI.date === today())); // not :disabled, so a focused button keeps focus
+  $('#clock').textContent = hhmm(nowMins());
+
+  const pool = dayTasks().filter((t) => !UI.tech || t.tech === UI.tech);
   document.querySelectorAll('#seg button').forEach((b) => {
     const k = b.dataset.filter;
     const n = k === 'all' ? pool.length : k === 'photo' ? pool.filter(issue).length : pool.filter((t) => t.status === k).length;
@@ -113,21 +143,25 @@ function renderChrome() {
   });
 }
 
+function timeCell(t) {
+  const late = lateMins(t);
+  return late ? `<td class="late">${t.time}<small>${fmtLate(late)}</small></td>` : `<td>${t.time}</td>`;
+}
+
 function renderRows() {
   const rows = visible();
   const empty = $('#empty');
-  const none = !S.tasks.length;
+  const none = !dayTasks().length;
   $('#table').hidden = !rows.length;
   empty.hidden = !!rows.length;
   if (!rows.length) {
     empty.innerHTML = none
-      ? `<h2>วันนี้ยังไม่มีภารกิจ</h2><p>กด “สร้างภารกิจ” เพื่อมอบหมายงานแรกให้ช่าง</p><button type="button" class="primary" data-act="create">${icon('plus')}สร้างภารกิจ</button>`
+      ? `<h2>${UI.date === today() ? 'วันนี้' : 'วันที่นี้'}ยังไม่มีภารกิจ</h2><p>กด “สร้างภารกิจ” เพื่อมอบหมายงานให้ช่าง หรือเลือกวันอื่นจากปฏิทิน</p><button type="button" class="primary" data-act="create">${icon('plus')}สร้างภารกิจ</button>`
       : `<h2>ไม่พบภารกิจตามตัวกรอง</h2><p>ลองเลือกสถานะหรือช่างอื่น</p><button type="button" class="secondary" data-act="clear">ล้างตัวกรอง</button>`;
   }
   $('#rows').innerHTML = rows.map((t) => {
-    const late = lateMins(t);
     const stat = `<td class="s" data-s="${t.status}"><span>${t.status === 'done' ? icon('check') : ''}${LABEL[t.status]}</span></td>`;
-    const time = late ? `<td class="late">${t.time}<small>${fmtLate(late)}</small></td>` : `<td>${t.time}</td>`;
+    const time = timeCell(t);
     const cell = (k) => {
       const s = slot(t, k);
       if (s === 'ok') return `<button type="button" class="shot" data-shot="${t.id}" aria-label="ดูรูป${NAMES[k]}ของ ${esc(t.title)}"><img src="${photoURI(t[k])}" alt=""></button>`;
@@ -145,6 +179,9 @@ function renderRows() {
 const field = (id, label, control, err) =>
   `<div class="field"${err ? ' data-err' : ''}><label for="${id}">${label}</label>${control}${err ? `<p class="err" id="e-${id}" role="alert">${err}</p>` : ''}</div>`;
 
+// a new task today starts at the next half hour; on another day, at 09:00
+const defaultTime = () => (UI.date === today() ? hhmm(Math.min(Math.ceil((nowMins() + 1) / 30) * 30, 23 * 60 + 30)) : '09:00');
+
 function formHTML(t, errs = {}, vals = {}, locked = false) {
   const v = (k) => esc(vals[k] ?? (t ? t[k] : ''));
   const d = locked ? ' disabled' : '';
@@ -154,7 +191,8 @@ function formHTML(t, errs = {}, vals = {}, locked = false) {
   const quick = t ? '' : `<div class="quick" role="group" aria-label="ภารกิจที่ใช้บ่อย">${COMMON.map((c) => `<button type="button" data-quick="${esc(c)}">${esc(c)}</button>`).join('')}</div>`;
   return field('f-title', 'ภารกิจ', `<input type="text" id="f-title" name="title" value="${v('title')}" autocomplete="off"${d}${inv('title')}>${quick}`, errs.title) +
     field('f-tech', 'ช่าง', `<select id="f-tech" name="tech"${d}${inv('tech')}>${techOpts}</select>`, errs.tech) +
-    field('f-time', 'เวลา', `<input type="time" id="f-time" name="time" value="${vals.time ?? (t ? t.time : hhmm(Math.min(Math.ceil((S.now + 1) / 30) * 30, 23 * 60 + 30)))}"${d}${inv('time')}>`, errs.time) +
+    field('f-date', 'วันที่', `<input type="date" id="f-date" name="date" min="${MIN_DAY}" max="${MAX_DAY}" value="${vals.date ?? (t ? t.date : UI.date)}"${d}${inv('date')}>`, errs.date) +
+    field('f-time', 'เวลา', `<input type="time" id="f-time" name="time" value="${vals.time ?? (t ? t.time : defaultTime())}"${d}${inv('time')}>`, errs.time) +
     field('f-place', 'สถานที่', `<input type="text" id="f-place" name="place" list="places" value="${v('place')}" autocomplete="off"${d}${inv('place')}>`, errs.place);
 }
 
@@ -163,9 +201,10 @@ function subText(t) {
   let s = `${t.time} · ${esc(t.place)}${late ? ' · ' + fmtLate(late) : ''}`;
   // the photo times are the evidence of when work really started and ended
   if (t.beforeAt) {
+    const el = minsSince(t.date, t.beforeAt);
     s += '<br>' + (t.status === 'done'
       ? `เริ่ม ${t.beforeAt}` + (t.afterAt ? ` · จบ ${t.afterAt} · ใช้เวลา ${dur(mins(t.afterAt) - mins(t.beforeAt))}` : '')
-      : `เริ่ม ${t.beforeAt} · ทำมาแล้ว ${dur(S.now - mins(t.beforeAt))}`);
+      : `เริ่ม ${t.beforeAt}` + (el >= 0 ? ` · ทำมาแล้ว ${dur(el)}` : ''));
   }
   return s;
 }
@@ -209,7 +248,7 @@ function renderDrawer(errs, vals) {
     <div class="actions">${locked ? '' : '<button type="submit" class="primary">บันทึก</button>'}<button type="button" class="secondary" data-act="close">ปิด</button></div></form>`;
 }
 
-function render() { renderChrome(); renderRows(); renderDrawer(); $('#plus30').disabled = S.now >= 23 * 60 + 30; }
+function render() { renderChrome(); renderRows(); renderDrawer(); }
 
 /* ---- actions ---- */
 const narrow = () => matchMedia('(max-width: 1279px)').matches;
@@ -245,18 +284,21 @@ function toast(msg) {
 function submit(e) {
   e.preventDefault();
   const f = new FormData(e.target);
-  const vals = { title: (f.get('title') || '').trim(), tech: f.get('tech') || '', time: f.get('time') || '', place: (f.get('place') || '').trim() };
+  const vals = { title: (f.get('title') || '').trim(), tech: f.get('tech') || '', date: f.get('date') || '', time: f.get('time') || '', place: (f.get('place') || '').trim() };
   const errs = {};
   if (!vals.title) errs.title = 'กรุณาระบุชื่อภารกิจ';
   if (!vals.tech) errs.tech = 'กรุณาเลือกช่าง';
+  if (!vals.date) errs.date = 'กรุณาเลือกวันที่';
+  else if (vals.date < MIN_DAY || vals.date > MAX_DAY) errs.date = 'วันที่ไม่ถูกต้อง เลือกปี พ.ศ. 2543 ถึง 2642';
   if (!vals.time) errs.time = 'กรุณาระบุเวลา';
   if (!vals.place) errs.place = 'กรุณาระบุสถานที่';
   const bad = Object.keys(errs)[0];
   if (bad) { renderDrawer(errs, vals); $('#f-' + bad).focus(); return; }
 
   if (UI.mode === 'create') {
-    const t = T(S.nextId++, vals.time, vals.title, vals.tech, vals.place, 'todo');
+    const t = T(S.nextId++, vals.time, vals.title, vals.tech, vals.place, 'todo', { date: vals.date });
     S.tasks.push(t);
+    UI.date = t.date; // follow the new task to its day
     if (UI.filter !== 'all' && UI.filter !== 'todo') UI.filter = 'all';
     if (UI.tech && UI.tech !== t.tech) { UI.tech = ''; $('#tech').value = ''; }
     UI.sel = t.id; UI.mode = 'view';
@@ -264,11 +306,13 @@ function submit(e) {
     toast(`มอบหมาย “${t.title}” ให้ ${t.tech} แล้ว`);
   } else {
     const t = S.tasks.find((x) => x.id === UI.sel);
-    const moved = t.tech !== vals.tech;
+    const moved = t.tech !== vals.tech, rescheduled = t.date !== vals.date;
     Object.assign(t, vals);
+    UI.date = t.date; // keep the edited row on screen, even when it moved to another day
     if (UI.tech && UI.tech !== t.tech) { UI.tech = ''; $('#tech').value = ''; } // keep the moved row on screen
     save(); render(); $('#drawer h2').focus();
-    toast(moved ? `ย้าย “${t.title}” ไปให้ ${t.tech} แล้ว` : `บันทึก “${t.title}” แล้ว`);
+    toast(rescheduled ? `ย้าย “${t.title}” ไปที่ ${relLabel() === 'วันนี้' ? 'วันนี้' : $('#date').textContent} แล้ว`
+      : moved ? `ย้าย “${t.title}” ไปให้ ${t.tech} แล้ว` : `บันทึก “${t.title}” แล้ว`);
   }
 }
 
@@ -310,18 +354,57 @@ document.addEventListener('click', (e) => {
 $('#create').addEventListener('click', startCreate);
 $('#tech').addEventListener('change', (e) => { UI.tech = e.target.value; renderChrome(); renderRows(); });
 $('#drawer').addEventListener('submit', submit);
-$('#plus30').addEventListener('click', () => {
-  S.now = Math.min(S.now + 30, 23 * 60 + 30); // the sample day ends at 23:30
-  $('#plus30').disabled = S.now >= 23 * 60 + 30;
-  save(); renderChrome(); renderRows(); refreshSub(); toast(`เวลาในตัวอย่าง ${hhmm(S.now)}`);
+
+/* ---- day navigation: arrows, native calendar, "today" ---- */
+function setDay(iso) {
+  if (!iso || iso === UI.date || iso < MIN_DAY || iso > MAX_DAY) return;
+  UI.date = iso;
+  if (UI.mode === 'create') { // a half-typed new task survives browsing; it just follows the day
+    const f = $('#f-date'); if (f) f.value = iso;
+    renderChrome(); renderRows();
+  } else {
+    Object.assign(UI, { sel: null, mode: null }); // the open task belongs to the old day
+    render();
+  }
+  $('#dayLive').textContent = `${$('#date').textContent} · ${dayTasks().length} ภารกิจ`;
+}
+$('#prev').addEventListener('click', () => setDay(addDays(UI.date, -1)));
+$('#next').addEventListener('click', () => setDay(addDays(UI.date, 1)));
+$('#today').addEventListener('click', () => setDay(today()));
+$('#day').addEventListener('change', (e) => setDay(e.target.value));
+$('#pick').addEventListener('click', () => {
+  const i = $('#day');
+  try { i.showPicker(); } catch (e) { i.focus(); i.click(); } // older browsers: no showPicker, fall back to the field itself
 });
+
 function restart(state) {
   S = state;
-  Object.assign(UI, { filter: 'all', tech: '', sort: { key: 'time', dir: 1 }, sel: null, mode: null });
+  Object.assign(UI, { date: today(), filter: 'all', tech: '', sort: { key: 'time', dir: 1 }, sel: null, mode: null });
   $('#tech').value = ''; save(); render();
 }
 $('#reset').addEventListener('click', () => restart(SAMPLE()));
-$('#blank').addEventListener('click', () => restart({ now: NOW0, nextId: 1, tasks: [] }));
+
+/* ---- the clock is real: once a minute, refresh the late times without stealing keyboard focus ---- */
+let lastMin = nowMins(), lastDay = today();
+function tick() {
+  const m = nowMins(), d = today();
+  if (m === lastMin && d === lastDay) return;
+  const rolled = d !== lastDay;
+  if (rolled && UI.date === lastDay) { // midnight: a page left on "today" follows the new day
+    UI.date = d;
+    if (UI.mode !== 'create') Object.assign(UI, { sel: null, mode: null });
+  }
+  lastMin = m; lastDay = d;
+  renderChrome(); refreshSub();
+  if (rolled) { renderRows(); if (UI.mode !== 'create') renderDrawer(); return; }
+  // only the time cells change from minute to minute; replacing them leaves focus, scroll and clicks alone
+  document.querySelectorAll('#rows tr').forEach((tr) => {
+    const t = S.tasks.find((x) => x.id === Number(tr.dataset.id));
+    if (t) tr.children[1].outerHTML = timeCell(t);
+  });
+}
+setInterval(tick, 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
 $('#lbClose').addEventListener('click', () => $('#lightbox').close());
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && UI.mode && !$('#lightbox').open) closeDrawer(); });
 

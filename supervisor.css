@@ -54,6 +54,15 @@ button.secondary {
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 26rem; align-items: start; gap: 1.5rem; padding: 1.25rem var(--pad) 3rem; }
 main { min-width: 0; }
 
+/* the day is the page title; the calendar button opens the browser's own date picker */
+.daybar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: .75rem 1.5rem; margin-bottom: 1.25rem; }
+.rel { margin-top: .5rem; color: var(--quiet); font-weight: 700; }
+.daynav { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.daynav .ghost { min-height: 3.25rem; gap: .5rem; }
+.daynav .icon { justify-content: center; width: 3.25rem; padding: 0; }
+.pickwrap { position: relative; display: inline-flex; }
+.dayin { position: absolute; left: 0; bottom: 0; width: 100%; height: 0; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+button.ghost:disabled, button.ghost[aria-disabled="true"] { border-style: dashed; color: var(--quiet); cursor: default; }
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin-bottom: 1rem; }
 .seg { display: flex; gap: 2px; border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; background: var(--ink); }
 .seg button {
@@ -64,7 +73,7 @@ main { min-width: 0; }
 .seg button:focus-visible { outline-offset: -6px; outline-color: var(--yellow); }
 .seg button[aria-pressed="false"]:focus-visible { outline-color: var(--ink); }
 .sel { margin-left: auto; display: flex; align-items: center; gap: .625rem; font: 700 1rem var(--kanit); }
-select, input[type="text"], input[type="time"] {
+select, input[type="text"], input[type="time"], input[type="date"]:not(.dayin) {
   min-height: 3.25rem; padding: 0 1rem; background: #fff; border: 2px solid var(--ink); border-radius: 12px; font-weight: 500;
 }
 select { padding-right: 2rem; }

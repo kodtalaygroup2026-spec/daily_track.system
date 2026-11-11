@@ -17,13 +17,14 @@
   <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><path d="M4 6.5h16V20H4zM4 11h16M8.5 3.5v5M15.5 3.5v5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
 
 <header class="bar">
   <span class="brand">Daily Track</span>
-  <h1 id="date"></h1>
-  <p class="clock">เวลาในตัวอย่าง <b id="clock"></b>
-    <button type="button" id="plus30" class="ghost">+30 น.</button></p>
+  <p class="clock">เวลาตอนนี้ <b id="clock"></b></p>
   <button type="button" id="create" class="primary"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>สร้างภารกิจ</button>
   <a class="ghost" href="profile.html" title="โปรไฟล์ของฉัน"><span id="whoName">หัวหน้า</span></a>
   <button type="button" id="logout" class="ghost">ออกจากระบบ</button>
@@ -31,6 +32,23 @@
 
 <div class="layout">
   <main>
+    <div class="daybar">
+      <div>
+        <h1 id="date"></h1>
+        <p class="rel" id="rel"></p>
+      </div>
+      <div class="daynav" role="group" aria-label="เลือกวันที่">
+        <button type="button" class="ghost icon" id="prev" aria-label="วันก่อนหน้า"><svg class="ic" aria-hidden="true"><use href="#i-left"/></svg></button>
+        <span class="pickwrap">
+          <button type="button" class="ghost" id="pick" aria-haspopup="dialog"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg>เลือกจากปฏิทิน</button>
+          <input type="date" id="day" class="dayin" aria-label="วันที่ที่แสดงในตาราง" tabindex="-1" min="2000-01-01" max="2099-12-31">
+        </span>
+        <button type="button" class="ghost icon" id="next" aria-label="วันถัดไป"><svg class="ic" aria-hidden="true"><use href="#i-right"/></svg></button>
+        <button type="button" class="ghost" id="today" aria-disabled="true">วันนี้</button>
+      </div>
+      <p class="sr" id="dayLive" role="status" aria-live="polite"></p>
+    </div>
+
     <div class="tools">
       <div class="seg" id="seg" role="group" aria-label="กรองตามสถานะ"></div>
       <label class="sel">ช่าง
@@ -55,7 +73,6 @@
     <p class="note">
       ข้อมูลตัวอย่าง · ยังไม่เชื่อมกับมือถือช่าง
       <button type="button" id="reset">เริ่มตัวอย่างใหม่</button>
-      <button type="button" id="blank">ดูวันที่ไม่มีงาน</button>
     </p>
   </main>
 
