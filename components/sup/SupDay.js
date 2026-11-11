@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Dropdown from '@/components/Dropdown';
 import CalendarTrigger from '@/components/CalendarTrigger';
 import { logout } from '@/lib/auth';
-import { MAX_DAY, MIN_DAY, addDays, hhmm, mins, nowMins, th, toDate, today } from '@/lib/dates';
+import { MAX_DAY, MIN_DAY, addDays, dayNum, hhmm, mins, nowMins, th, toDate, today } from '@/lib/dates';
 import { PLACES, TECHS, loadSup, newTask, photoURI, sampleSup, saveSup } from '@/lib/sup-store';
 import Drawer from './Drawer';
 import Lightbox from './Lightbox';
@@ -18,9 +18,12 @@ const MENU_KEY = 'dailytrack.menu.v1', MENU_W = 240, RAIL_W = 72; // widened men
 const isDocked = () => window.innerWidth >= 1280;
 const savedMenu = () => { try { return localStorage.getItem(MENU_KEY) !== 'closed'; } catch (e) { return true; } };
 const dayTitle = (iso) => th(toDate(iso), { weekday: 'long' }) + ' ' + th(toDate(iso), { day: 'numeric', month: 'short', year: 'numeric' });
+// "9–11 พ.ย. 2569"; across months "28 ต.ค. – 3 พ.ย. 2569"
+const rangeTitle = (a, b) => new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { day: 'numeric', month: 'short', year: 'numeric' }).formatRange(toDate(a), toDate(b));
 const TECH_OPTIONS = [{ value: '', label: 'ช่างทุกคน' }, ...TECHS.map((n) => ({ value: n, label: n }))];
 
-const FRESH = { date: '', filter: 'all', tech: '', sort: { key: 'time', dir: 1 }, sel: null, mode: null, rev: 0 };
+// date = first shown day, to = last shown day ('' = just the one day)
+const FRESH = { date: '', to: '', filter: 'all', tech: '', sort: { key: 'time', dir: 1 }, sel: null, mode: null, rev: 0 };
 
 export default function SupDay({ user }) {
   const router = useRouter();
@@ -81,7 +84,7 @@ export default function SupDay({ user }) {
     const m = nowMins(), d = today();
     if (m === last.current.m && d === last.current.d) return;
     const rolled = d !== last.current.d;
-    if (rolled && ui.date === last.current.d) { // midnight: a page left on "today" follows the new day
+    if (rolled && ui.date === last.current.d && !ui.to) { // midnight: a page left on "today" follows the new day
       patch(ui.mode !== 'create' ? { date: d, sel: null, mode: null } : { date: d });
     }
     if (rolled && ui.mode !== 'create') patch({ rev: ui.rev + 1 }); // the original redrew the drawer on a new day
@@ -111,16 +114,20 @@ export default function SupDay({ user }) {
   if (!data) return null;
 
   const date = ui.date || today();
-  const dayTasks = (iso) => data.tasks.filter((t) => t.date === iso);
-  const dayList = dayTasks(date);
+  const to = ui.to && ui.to > date ? ui.to : date;
+  const isRange = to !== date;
+  const span = dayNum(to) - dayNum(date) + 1; // days shown
+  const tasksIn = (a, b) => data.tasks.filter((t) => t.date >= a && t.date <= b);
+  const dayList = tasksIn(date, to);
   const pool = dayList.filter((t) => !ui.tech || t.tech === ui.tech);
   const rows = (() => {
     const { key, dir } = ui.sort;
+    const when = (a, b) => a.date.localeCompare(b.date) || mins(a.time) - mins(b.time); // days first, then the hour
     const cmp = {
-      time: (a, b) => mins(a.time) - mins(b.time) || a.id - b.id,
-      status: (a, b) => ORDER[a.status] - ORDER[b.status] || mins(a.time) - mins(b.time),
+      time: (a, b) => when(a, b) || a.id - b.id,
+      status: (a, b) => ORDER[a.status] - ORDER[b.status] || when(a, b),
       title: (a, b) => a.title.localeCompare(b.title, 'th'),
-      tech: (a, b) => a.tech.localeCompare(b.tech, 'th') || mins(a.time) - mins(b.time),
+      tech: (a, b) => a.tech.localeCompare(b.tech, 'th') || when(a, b),
     }[key];
     return pool.filter((t) => ui.filter === 'all' || (ui.filter === 'photo' ? issue(t) : t.status === ui.filter)).sort((a, b) => cmp(a, b) * dir);
   })();
@@ -171,20 +178,24 @@ export default function SupDay({ user }) {
     }
     if (fresh.tech && fresh.tech !== vals.tech) fresh.tech = ''; // keep the new or moved row on screen
     commit(next);
-    patch({ ...fresh, date: vals.date, mode: 'view', rev: ui.rev + 1 }); // follow the task to its day
+    const inView = vals.date >= date && vals.date <= to; // a task moved outside the shown days: follow it to its day
+    patch({ ...fresh, ...(inView ? {} : { date: vals.date, to: '' }), mode: 'view', rev: ui.rev + 1 });
     after.current = () => drawerRef.current && drawerRef.current.focusTitle();
     toast(toastText);
   }
 
   /* ---- day navigation: arrows, calendar, "today" ---- */
-  function setDay(iso) {
-    if (!iso || iso === date || iso < MIN_DAY || iso > MAX_DAY) return;
-    if (ui.mode === 'create') { // a half-typed new task survives browsing; it just follows the day
-      patch({ date: iso });
-      drawerRef.current && drawerRef.current.setDate(iso);
-    } else patch({ date: iso, sel: null, mode: null }); // the open task belongs to the old day
-    setLive(`${dayTitle(iso)} · ${dayTasks(iso).length} ภารกิจ`);
+  function setRange(a, b = a) {
+    if (!a || a < MIN_DAY || b > MAX_DAY || (a === date && b === to)) return;
+    const one = a === b;
+    if (ui.mode === 'create') { // a half-typed new task survives browsing; it just follows the first day
+      patch({ date: a, to: one ? '' : b });
+      drawerRef.current && drawerRef.current.setDate(a);
+    } else patch({ date: a, to: one ? '' : b, sel: null, mode: null }); // the open task belongs to the old days
+    setLive(`${one ? dayTitle(a) : rangeTitle(a, b)} · ${tasksIn(a, b).length} ภารกิจ`);
   }
+  const setDay = (iso) => setRange(iso, iso);
+  const step = (dir) => setRange(addDays(date, dir * span), addDays(to, dir * span)); // the arrows move the whole range
 
   function restart() {
     commit(sampleSup());
@@ -194,7 +205,7 @@ export default function SupDay({ user }) {
   const sortBy = (k) => patch({ sort: ui.sort.key === k ? { key: k, dir: -ui.sort.dir } : { key: k, dir: 1 } });
   const logOut = () => { logout(); router.replace('/login'); };
   const dayNone = !dayList.length;
-  const isToday = date === today();
+  const isToday = date === today() && !isRange;
   const cls = 's-sup' + (menuOpen ? ' menu-open' : '');
 
   const cell = (t, k) => {
@@ -259,15 +270,15 @@ export default function SupDay({ user }) {
             <main>
               <div className="daybar">
                 <div>
-                  <h1 id="date">{dayTitle(date)}</h1>
-                  <p className="rel" id="rel">{relLabel(date)}</p>
+                  <h1 id="date">{isRange ? rangeTitle(date, to) : dayTitle(date)}</h1>
+                  <p className="rel" id="rel">{isRange ? `ช่วง ${span} วัน` : relLabel(date)}</p>
                 </div>
                 <div className="daynav" role="group" aria-label="เลือกวันที่">
-                  <button type="button" className="ghost icon" id="prev" aria-label="วันก่อนหน้า" onClick={() => setDay(addDays(date, -1))}><Icon n="left" /></button>
+                  <button type="button" className="ghost icon" id="prev" aria-label={isRange ? 'ช่วงก่อนหน้า' : 'วันก่อนหน้า'} onClick={() => step(-1)}><Icon n="left" /></button>
                   <span className="pickwrap">
-                    <CalendarTrigger id="pick" className="ghost" value={date} onPick={setDay} min={MIN_DAY} max={MAX_DAY} today={today()}><Icon n="cal" />เลือกจากปฏิทิน</CalendarTrigger>
+                    <CalendarTrigger id="pick" className="ghost" range value={{ from: date, to }} onPick={({ from, to: end }) => setRange(from, end)} min={MIN_DAY} max={MAX_DAY} today={today()}><Icon n="cal" />เลือกจากปฏิทิน</CalendarTrigger>
                   </span>
-                  <button type="button" className="ghost icon" id="next" aria-label="วันถัดไป" onClick={() => setDay(addDays(date, 1))}><Icon n="right" /></button>
+                  <button type="button" className="ghost icon" id="next" aria-label={isRange ? 'ช่วงถัดไป' : 'วันถัดไป'} onClick={() => step(1)}><Icon n="right" /></button>
                   {/* aria-disabled, not disabled, so a focused button keeps focus */}
                   <button type="button" className="ghost" id="today" aria-disabled={isToday} onClick={() => setDay(today())}>วันนี้</button>
                 </div>
@@ -309,7 +320,7 @@ export default function SupDay({ user }) {
                       return (
                         <tr key={t.id} data-id={t.id} data-sel={String(ui.sel === t.id)} className={t.status === 'done' ? 'is-done' : ''} onClick={() => open(t.id, null)}>
                           <td className="s" data-s={t.status}><span>{t.status === 'done' && <Icon n="check" />}{LABEL[t.status]}</span></td>
-                          <td className={late ? 'late' : undefined}>{t.time}{late ? <small>{fmtLate(late)}</small> : null}</td>
+                          <td className={late ? 'late' : undefined}>{isRange && <span className="tdate">{th(toDate(t.date), { day: 'numeric', month: 'short' })}</span>}{t.time}{late ? <small>{fmtLate(late)}</small> : null}</td>
                           <td className="task">
                             <button type="button" className="open" data-open={t.id} aria-current={ui.sel === t.id ? 'true' : undefined}
                               onClick={(e) => { e.stopPropagation(); open(t.id, 'row'); }}>{t.title}</button>
@@ -325,7 +336,7 @@ export default function SupDay({ user }) {
                 <div className="empty" id="empty" hidden={!!rows.length}>
                   {dayNone ? (
                     <>
-                      <h2>{isToday ? 'วันนี้' : 'วันที่นี้'}ยังไม่มีภารกิจ</h2>
+                      <h2>{isRange ? 'ช่วงวันที่นี้' : isToday ? 'วันนี้' : 'วันที่นี้'}ยังไม่มีภารกิจ</h2>
                       <p>กด “สร้างภารกิจ” เพื่อมอบหมายงานให้ช่าง หรือเลือกวันอื่นจากปฏิทิน</p>
                       <button type="button" className="primary" onClick={startCreate}><Icon n="plus" />สร้างภารกิจ</button>
                     </>

@@ -281,6 +281,9 @@
 /* "picked", not "sel": .sel is the technician-filter label (margin-left:auto, display:flex), which shrank the chosen day to a thin bar */
 .s-sup .cd.picked { background: var(--ink); color: #fff; font-family: var(--kanit); font-weight: 700; }
 .s-sup .cd:disabled { color: var(--quiet); border-style: dashed; border-color: var(--quiet); cursor: not-allowed; }
+.s-sup .cd.inrange { background: var(--hover); border-radius: 0; }
+.s-sup .chint { margin: .625rem 0 0; text-align: center; color: var(--quiet); }
+.s-sup .tdate { display: block; font-size: 1rem; }
 .s-sup .cf { display: flex; justify-content: space-between; gap: .75rem; margin-top: .75rem; }
 .s-sup .cb { min-height: 2.75rem; padding: 0 1rem; background: transparent; border: 2px solid var(--ink); border-radius: 10px; color: var(--ink); font: 700 1rem var(--kanit); cursor: pointer; }
 .s-sup .cal :focus-visible { outline: 4px solid var(--ink); outline-offset: 2px; }

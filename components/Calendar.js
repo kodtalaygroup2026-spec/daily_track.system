@@ -13,12 +13,16 @@ function shiftMonth(dt, n) {
   return new Date(dt.getFullYear(), dt.getMonth() + n, Math.min(dt.getDate(), last));
 }
 
-export default function Calendar({ anchor, value, onPick, onClose, min = MIN_DAY, max = MAX_DAY, today }) {
+// range: value is { from, to } and onPick gets { from, to } after two clicks (first day, last day); otherwise value and onPick are one ISO day
+export default function Calendar({ anchor, value, onPick, onClose, min = MIN_DAY, max = MAX_DAY, today, range }) {
   const el = useRef(null);
   const pending = useRef(null); // selector of the element to focus after the next render
   const placed = useRef(false);
   const now = today || todayIso();
-  const v = value && value >= min && value <= max ? value : now;
+  const startIso = range ? value && value.from : value;
+  const v = startIso && startIso >= min && startIso <= max ? startIso : now;
+  const [sel, setSel] = useState(() => (range && value ? { from: value.from, to: value.to || value.from, picking: false } : null));
+  const [hover, setHover] = useState(''); // the day under the mouse while the second end of the range is still open
   const [view, setView] = useState(() => {
     const d = toDate(v);
     return { y: d.getFullYear(), m: d.getMonth(), focus: v };
@@ -27,7 +31,17 @@ export default function Calendar({ anchor, value, onPick, onClose, min = MIN_DAY
   const close = (refocus) => { onClose(); if (refocus) anchor.focus(); };
   const closeRef = useRef(close);
   closeRef.current = close;
-  const pickDay = (s) => { close(true); onPick(s); };
+  const pickDay = (s) => {
+    if (range) {
+      if (!sel || !sel.picking) { setSel({ from: s, to: s, picking: true }); setHover(''); return; } // first click starts the range; the calendar stays open
+      const [a, b] = s < sel.from ? [s, sel.from] : [sel.from, s]; // the second click may come before the first
+      close(true);
+      onPick({ from: a, to: b });
+      return;
+    }
+    close(true);
+    onPick(s);
+  };
   const focusDay = (dt) => {
     const s = isoOf(dt);
     if (s < min || s > max) return;
@@ -86,13 +100,18 @@ export default function Calendar({ anchor, value, onPick, onClose, min = MIN_DAY
   const first = new Date(y, m, 1);
   const start = new Date(y, m, 1 - first.getDay());
   const cells = [];
+  // the days shown as chosen: one day, or the range (while the last day is still open it follows the mouse)
+  const open = range && sel && sel.picking && hover;
+  const lo = !range ? v : !sel ? '' : open && hover < sel.from ? hover : sel.from;
+  const hi = !range ? v : !sel ? '' : open && hover > sel.from ? hover : open ? sel.from : sel.to;
   for (let i = 0; i < 42; i++) {
     const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
     const s = isoOf(dt);
-    const cls = 'cd' + (dt.getMonth() !== m ? ' out' : '') + (s === v ? ' picked' : '') + (s === now ? ' now' : '');
+    const end = s === lo || s === hi, between = range && s > lo && s < hi;
+    const cls = 'cd' + (dt.getMonth() !== m ? ' out' : '') + (end ? ' picked' : '') + (between ? ' inrange' : '') + (s === now ? ' now' : '');
     cells.push(
       <button key={i} type="button" className={cls} data-d={s} tabIndex={s === focus ? 0 : -1} disabled={s < min || s > max}
-        aria-pressed={s === v ? 'true' : undefined} aria-current={s === now ? 'date' : undefined}
+        aria-pressed={end || between ? 'true' : undefined} aria-current={s === now ? 'date' : undefined}
         aria-label={th(dt, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}>{dt.getDate()}</button>,
     );
   }
@@ -105,7 +124,9 @@ export default function Calendar({ anchor, value, onPick, onClose, min = MIN_DAY
       const n = Number(b.dataset.m), t = shiftMonth(toDate(focus), n);
       setView({ y: t.getFullYear(), m: t.getMonth(), focus: isoOf(t) });
       pending.current = `[data-m="${n}"]`;
-    } else if ('today' in b.dataset) { if (now >= min && now <= max) pickDay(now); }
+    } else if ('today' in b.dataset) {
+      if (now >= min && now <= max) { if (range) { close(true); onPick({ from: now, to: now }); } else pickDay(now); }
+    }
     else if ('close' in b.dataset) close(true);
   };
 
@@ -132,7 +153,8 @@ export default function Calendar({ anchor, value, onPick, onClose, min = MIN_DAY
         <button type="button" className="cn" data-m="1" aria-label="เดือนถัดไป"><Icon d={I.right} /></button>
       </div>
       <div className="cw" aria-hidden="true">{WD.map((w) => <span key={w}>{w}</span>)}</div>
-      <div className="cg">{cells}</div>
+      <div className="cg" onMouseOver={(e) => { const b = e.target.closest('.cd'); if (range && sel && sel.picking && b) setHover(b.dataset.d); }}>{cells}</div>
+      {range && <p className="chint" role="status">{sel && sel.picking ? 'เลือกวันสุดท้ายของช่วง' : 'เลือกวันแรก แล้วเลือกวันสุดท้าย'}</p>}
       <div className="cf">
         <button type="button" className="cb" data-today="">วันนี้</button>
         <button type="button" className="cb" data-close="">ปิด</button>
