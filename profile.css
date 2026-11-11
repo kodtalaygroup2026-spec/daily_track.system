@@ -1,0 +1,13 @@
+/* extends login.css: same ground, fields and primary button */
+.back { display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--ink); font: 700 1.25rem var(--kanit); text-underline-offset: .2em; }
+.wrap h1 { margin-top: 1rem; }
+.info { margin: 1.25rem 0 0; }
+.info div { display: flex; justify-content: space-between; gap: 1rem; padding: .75rem 0; border-top: 2px solid var(--ground); }
+.info dt { color: var(--quiet); }
+.info dd { margin: 0; font: 700 1rem var(--kanit); }
+.msg { min-height: 1.4em; margin-top: 1rem; font-weight: 700; }
+.msg.bad { color: var(--red); }
+.secondary {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 3.5rem; margin-top: 1rem;
+  background: transparent; border: 2px solid var(--ink); border-radius: 12px; font: 700 1rem var(--kanit); cursor: pointer;
+}

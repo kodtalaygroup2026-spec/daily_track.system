@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Track · โปรไฟล์</title>
+<meta name="theme-color" content="#EDF0EE">
+<link rel="preload" href="fonts/kanit-700-thai.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="login.css">
+<link rel="stylesheet" href="profile.css">
+<script src="auth.js" data-role="any"></script>
+</head>
+<body>
+<main class="wrap">
+  <a class="back" id="back" href="login.html">← กลับ</a>
+  <h1>โปรไฟล์</h1>
+
+  <form id="f" novalidate>
+    <div class="field">
+      <label for="name">ชื่อที่แสดง</label>
+      <input id="name" type="text" maxlength="40" autocomplete="name" aria-describedby="msg">
+    </div>
+    <dl class="info">
+      <div><dt>รหัสพนักงาน</dt><dd id="code"></dd></div>
+      <div><dt>บทบาท</dt><dd id="role"></dd></div>
+    </dl>
+    <p class="msg" id="msg" role="status"></p>
+    <button type="submit" class="primary">บันทึกชื่อ</button>
+  </form>
+
+  <button type="button" id="logout" class="secondary">ออกจากระบบ</button>
+  <p class="note">ข้อมูลตัวอย่าง · ชื่อใหม่ใช้กับหน้านี้และหัวข้อของแอป ยังไม่เปลี่ยนในรายการของหัวหน้า</p>
+</main>
+
+<script>
+(function () {
+  var s = Auth.session();
+  if (!s) return; // auth.js is already sending this visitor to the sign-in page
+  var f = document.getElementById('f'), name = document.getElementById('name'), msg = document.getElementById('msg');
+  document.getElementById('back').href = Auth.home();
+  document.getElementById('code').textContent = s.code;
+  document.getElementById('role').textContent = s.role === 'tech' ? 'ช่าง' : 'หัวหน้า';
+  name.value = s.name;
+
+  function say(text, bad) { msg.textContent = text; msg.className = 'msg' + (bad ? ' bad' : ''); if (bad) f.dataset.err = '1'; else f.removeAttribute('data-err'); }
+
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = name.value.trim().replace(/\s+/g, ' ');
+    if (!v) { say('กรอกชื่อที่แสดง', true); return name.focus(); }
+    if (!Auth.rename(v)) { say('เบราว์เซอร์ไม่ให้บันทึกชื่อ ลองปิดโหมดส่วนตัว', true); return name.focus(); }
+    name.value = v;
+    say('บันทึกชื่อแล้ว');
+  });
+})();
+</script>
+</body>
+</html>

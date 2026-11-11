@@ -36,7 +36,11 @@ h1, h2, p { margin: 0; }
 
 .bar { display: flex; justify-content: space-between; align-items: center; font-size: 1.0625rem; min-height: 2.5rem; }
 .brand { font: 700 1rem var(--kanit); letter-spacing: .01em; }
-.who { color: var(--quiet); }
+.who {
+  display: inline-flex; align-items: center; gap: .25rem; min-height: 2.75rem; padding: 0 .5rem 0 .875rem;
+  color: var(--ink); text-decoration: none; border: 2px solid var(--ink); border-radius: 10px; font-weight: 700;
+}
+.who .ic { width: 1.125rem; height: 1.125rem; }
 
 .net {
   display: flex; gap: .625rem; align-items: center;
