@@ -14,7 +14,7 @@ import { Icon, LABEL, NAMES, Sprite, fmtLate, issue, lateMins, relLabel, slot } 
 const FILTERS = [['all', 'ทั้งหมด'], ['todo', 'รอทำ'], ['doing', 'กำลังทำ'], ['done', 'เสร็จ'], ['photo', 'รูปไม่ครบ']];
 const HEADS = [['status', 'สถานะ', 'c-s'], ['time', 'เวลา', 'c-t'], ['title', 'ภารกิจ', undefined], ['tech', 'ช่าง', 'c-h']];
 const ORDER = { todo: 0, doing: 1, done: 2 };
-const MENU_KEY = 'dailytrack.menu.v1', MENU_W = 240;
+const MENU_KEY = 'dailytrack.menu.v1', MENU_W = 240, RAIL_W = 72; // widened menu and the icon rail, in px (15rem, 4.5rem)
 const isDocked = () => window.innerWidth >= 1280;
 const savedMenu = () => { try { return localStorage.getItem(MENU_KEY) !== 'closed'; } catch (e) { return true; } };
 const dayTitle = (iso) => th(toDate(iso), { weekday: 'long' }) + ' ' + th(toDate(iso), { day: 'numeric', month: 'short', year: 'numeric' });
@@ -49,7 +49,8 @@ export default function SupDay({ user }) {
 
   /* ---- left menu: docked beside the page from 1280px, a panel over it below. The docked choice is remembered. ---- */
   const docked = vw >= 1280;
-  const narrow = vw - (docked && menuOpen ? MENU_W : 0) < 1280; // the drawer is a panel over the table
+  // the rail always takes its width; only a widened docked menu takes more. Below that the drawer is a panel over the table.
+  const narrow = vw - (docked && menuOpen ? MENU_W : RAIL_W) < 1280;
   function setMenu(open) {
     setMenuOpen(open);
     if (isDocked()) { try { localStorage.setItem(MENU_KEY, open ? 'open' : 'closed'); } catch (e) { /* not remembered */ } }
@@ -217,35 +218,36 @@ export default function SupDay({ user }) {
       <div className="page">
         <nav id="menu" ref={menuRef} className="menu" aria-label="เมนูหัวหน้า">
           <div className="mhead">
+            {/* the toggle lives in the side rail, which stays on screen when the menu is narrowed to icons */}
+            <button type="button" id="menuBtn" ref={menuBtn} className="mtoggle" aria-controls="menu" aria-expanded={menuOpen}
+              aria-label={menuOpen ? 'ปิดเมนู' : 'เปิดเมนู'}
+              onClick={() => {
+                const o = !menuOpen;
+                setMenu(o);
+                if (o && !isDocked()) after.current = () => menuRef.current.querySelector('a').focus(); // a panel over the page takes focus; a docked menu leaves it on the button
+              }}><Icon n={menuOpen ? 'left' : 'menu'} /></button>
             <span className="brand">เมนู</span>
-            <button type="button" className="x" id="menuClose" aria-label="ปิดเมนู" onClick={() => { setMenu(false); menuBtn.current.focus(); }}><Icon n="close" /></button>
           </div>
-          <p className="mgroup">งานประจำวัน</p>
+          <p className="mgroup"><span>งานประจำวัน</span></p>
           <ul>
-            <li><Link href="/supervisor" className="mitem" aria-current="page">ภารกิจรายวัน</Link></li>
-            <li><span className="mitem soon" aria-disabled="true">รายงานประจำวัน<small>เร็วๆ นี้</small></span></li>
+            <li><Link href="/supervisor" className="mitem" aria-current="page"><Icon n="list" /><span className="mtxt">ภารกิจรายวัน</span></Link></li>
+            <li><span className="mitem soon" aria-disabled="true"><Icon n="doc" /><span className="mtxt">รายงานประจำวัน<small>เร็วๆ นี้</small></span></span></li>
           </ul>
-          <p className="mgroup">ตั้งค่า</p>
+          <p className="mgroup"><span>ตั้งค่า</span></p>
           <ul>
-            <li><span className="mitem soon" aria-disabled="true">พนักงานและรหัสพนักงาน<small>เร็วๆ นี้</small></span></li>
-            <li><span className="mitem soon" aria-disabled="true">สิทธิ์การใช้งาน<small>เร็วๆ นี้</small></span></li>
-            <li><span className="mitem soon" aria-disabled="true">ตั้งค่าอื่นๆ<small>เร็วๆ นี้</small></span></li>
+            <li><span className="mitem soon" aria-disabled="true"><Icon n="users" /><span className="mtxt">พนักงานและรหัสพนักงาน<small>เร็วๆ นี้</small></span></span></li>
+            <li><span className="mitem soon" aria-disabled="true"><Icon n="key" /><span className="mtxt">สิทธิ์การใช้งาน<small>เร็วๆ นี้</small></span></span></li>
+            <li><span className="mitem soon" aria-disabled="true"><Icon n="sliders" /><span className="mtxt">ตั้งค่าอื่นๆ<small>เร็วๆ นี้</small></span></span></li>
           </ul>
-          <p className="mgroup">บัญชีของฉัน</p>
+          <p className="mgroup"><span>บัญชีของฉัน</span></p>
           <ul>
-            <li><Link href="/profile" className="mitem">โปรไฟล์</Link></li>
+            <li><Link href="/profile" className="mitem"><Icon n="user" /><span className="mtxt">โปรไฟล์</span></Link></li>
           </ul>
         </nav>
         <div className="scrim" id="scrim" onClick={() => { setMenu(false); menuBtn.current.focus(); }}></div>
         <div className="content">
 
           <header className="bar">
-            <button type="button" id="menuBtn" ref={menuBtn} className="ghost" aria-controls="menu" aria-expanded={menuOpen}
-              onClick={() => {
-                const o = !menuOpen;
-                setMenu(o);
-                if (o && !isDocked()) after.current = () => menuRef.current.querySelector('a').focus(); // a panel over the page takes focus; a docked menu leaves it on the button
-              }}><Icon n="menu" />เมนู</button>
             <span className="brand">Daily Track</span>
             <p className="clock">เวลาตอนนี้ <b id="clock">{hhmm(nowMins())}</b></p>
             <button type="button" id="create" ref={createBtn} className="primary" onClick={startCreate}><Icon n="plus" />สร้างภารกิจ</button>
