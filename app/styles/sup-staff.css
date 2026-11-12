@@ -27,7 +27,7 @@
 .s-sup .st-table td.st-nowrap { white-space: nowrap; }
 .s-sup .st-state { display: inline-flex; align-items: center; gap: .375rem; font: 700 1rem var(--kanit); white-space: nowrap; }
 .s-sup .st-acts { display: flex; flex-wrap: wrap; gap: .5rem; min-width: 14rem; padding: .5rem 0; }
-.s-sup .st-acts .ghost { gap: .5rem; }
+.s-sup .st-acts .ghost, .s-sup .st-acts .secondary { gap: .5rem; }
 
 /* the boxes */
 .s-sup .st-pw { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
@@ -41,12 +41,6 @@
 .s-sup .st-val { flex: 1 1 8rem; min-width: 0; font: 700 1.25rem/1.25 var(--kanit); letter-spacing: .04em; overflow-wrap: anywhere; user-select: all; }
 .s-sup .st-cred .ghost { gap: .5rem; }
 .s-sup .st-table th.st-plain { padding: 0 1rem; font: 700 1rem var(--kanit); }
-
-/* delete sits alone on the left of the edit box footer; on a phone the three buttons wrap instead of squeezing */
-.s-sup .tm-foot .st-del { margin-right: auto; gap: .5rem; }
-.s-sup .tm-foot .st-del[aria-disabled="true"] { color: var(--quiet); border-style: dashed; cursor: not-allowed; }
-.s-sup .tm-foot:has(.st-del), .s-sup .tm-foot:has(.secondary + .secondary) { flex-wrap: wrap; }
-@media (max-width: 559px) { .s-sup .tm-foot .st-del { flex-basis: 100%; margin-right: 0; } }
 
 /* the switch on one's own row cannot be turned: dashed and quiet like the disabled role menu beside it */
 .s-sup .tm .rs-sw[aria-disabled="true"] { color: var(--quiet); cursor: not-allowed; }

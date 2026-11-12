@@ -140,12 +140,14 @@ Deno.serve(async (req) => {
     if (!UUID.test(id)) return json({ error: 'bad_value' }, 400);
     const { error: perr } = await caller.rpc('prepare_delete_staff', { p_id: id });
     if (perr) {
-      const known = ['not_allowed', 'not_found', 'self_lock', 'last_sup', 'owns_templates', 'has_history'];
+      const known = ['not_allowed', 'not_found', 'self_lock', 'owns_templates', 'not_off'];
       if (!known.includes(perr.message)) return json({ error: 'failed' }, 500); // a fault, not a refusal
       return json({ error: perr.message }, 409);
     }
     const { error } = await admin.auth.admin.deleteUser(id);
-    return error ? json({ error: 'failed' }, 500) : json({ ok: true });
+    // a second click that lost the race finds the user already gone: that is the outcome asked for
+    if (error && !/not.?found/i.test(error.message ?? '')) return json({ error: 'failed' }, 500);
+    return json({ ok: true });
   }
 
   return json({ error: 'bad_request' }, 400);

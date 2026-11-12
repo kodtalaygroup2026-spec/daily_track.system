@@ -3,6 +3,7 @@
 // and switch a login off. A password is typed or generated here, shown once in the box that made it, and lives only in
 // that box's state: nothing stores, logs or sends it anywhere but the one call that sets it.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import Dropdown from '@/components/Dropdown';
 import { dayNum, isoOf, th } from '@/lib/dates';
 import { BRANCHES, branchLabel } from '@/lib/branches';
@@ -210,17 +211,14 @@ function AddBox({ onClose, onCreated, toast }) {
   );
 }
 
-function EditBox({ s, me, onClose, onSaved, onChanged, onDeleted, toast }) {
+function EditBox({ s, me, onClose, onSaved, onChanged }) {
   const refs = { code: useRef(null), name: useRef(null), branch: useRef(null) };
-  const delBtn = useRef(null);
-  const back = useRef(false); // true while the delete confirm is open, so closing it returns focus to the button that opened it
   const [saved, setSaved] = useState(s.code); // the code as stored: moves when a recode succeeds but the next step fails
   const [v, setV] = useState({ code: s.code, name: s.name, role: s.role, branch: s.branch, active: s.active });
   const [errs, setErrs] = useState({});
   const [formErr, setFormErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [miss, setMiss] = useState(null);
-  const [del, setDel] = useState(false);
   const clear = (...ks) => setErrs((e) => (ks.some((k) => e[k]) ? { ...e, ...Object.fromEntries(ks.map((k) => [k, undefined])) } : e));
   const set = (k) => (val) => { setV((x) => ({ ...x, [k]: val })); clear(k); };
 
@@ -228,7 +226,6 @@ function EditBox({ s, me, onClose, onSaved, onChanged, onDeleted, toast }) {
     if (miss) refs[miss.k].current.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refs holds stable ref objects
   }, [miss]);
-  useEffect(() => { if (!del && back.current) delBtn.current?.focus(); back.current = del; }, [del]);
 
   async function submit(e) {
     e.preventDefault();
@@ -265,9 +262,6 @@ function EditBox({ s, me, onClose, onSaved, onChanged, onDeleted, toast }) {
   }
 
   const close = guard(busy, onClose);
-  if (del) {
-    return <DeleteBox s={s} code={saved} onBack={() => setDel(false)} onDeleted={() => onDeleted(saved)} onOff={() => onSaved(`ปิดใช้งาน “${s.name}” แล้ว`)} />;
-  }
   const recoding = v.code.trim() !== saved;
   return (
     <Modal title="แก้ไขพนักงาน" sub={`รหัสพนักงาน ${saved}`} onClose={close} onSubmit={submit}>
@@ -298,14 +292,12 @@ function EditBox({ s, me, onClose, onSaved, onChanged, onDeleted, toast }) {
               <i aria-hidden="true" />ใช้งานอยู่
             </button>
             {!v.active && <p className="hint">ปิดใช้งาน · พนักงานจะเข้าสู่ระบบไม่ได้</p>}
-            {me && <p className="hint" id="h-e-active">นี่คือบัญชีของคุณ เปลี่ยนบทบาท ปิดใช้งาน หรือลบไม่ได้</p>}
+            {me && <p className="hint" id="h-e-active">นี่คือบัญชีของคุณ เปลี่ยนบทบาทหรือปิดใช้งานไม่ได้</p>}
           </div>
         </div>
         <FormError text={formErr} />
       </div>
       <Foot>
-        <button type="button" className="secondary st-del" ref={delBtn} aria-disabled={me || busy} aria-describedby={me ? 'h-e-active' : undefined}
-          onClick={() => { if (me) toast('ลบบัญชีของตัวเองไม่ได้'); else if (!busy) setDel(true); }}><Icon n="trash" />ลบพนักงาน</button>
         <button type="button" className="secondary" onClick={close}>ยกเลิก</button>
         <button type="submit" className="primary" aria-disabled={busy}>{busy ? 'กำลังบันทึก…' : 'บันทึก'}</button>
       </Foot>
@@ -313,40 +305,37 @@ function EditBox({ s, me, onClose, onSaved, onChanged, onDeleted, toast }) {
   );
 }
 
-// the confirm for removing a login for good. Only has_history offers the alternative: switching the account off.
-function DeleteBox({ s, code, onBack, onDeleted, onOff }) {
-  const [busy, setBusy] = useState(''); // 'del' | 'off' while a request is out
+// the confirm for removing a switched-off login for good (the server refuses an account that is still on)
+function DeleteBox({ s, onClose, onDeleted, onStale }) {
+  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null); // { text, code }
-  const [hist, setHist] = useState(false); // stays true after has_history, so a later error does not take the alternative away
-  async function run(kind, call, then) {
+  async function go(e) {
+    e.preventDefault();
     if (busy) return;
-    setBusy(kind);
+    setBusy(true);
     setErr(null);
     try {
-      await call();
-      then();
+      await deleteStaff(s.id);
+      onDeleted(s.code);
     } catch (x) {
       setErr({ text: errText(x), code: x.code });
-      if (x.code === 'has_history') setHist(true);
-      setBusy('');
+      if (x.code === 'not_found' || x.code === 'not_off') onStale(); // the row is gone or switched back on: the table is out of date
+      setBusy(false);
     }
   }
-  const go = (e) => { e.preventDefault(); run('del', () => deleteStaff(s.id), onDeleted); };
-  const off = () => run('off', () => updateStaff(s.id, { name: s.name, role: s.role, branch: s.branch, active: false }), onOff);
-  const close = guard(!!busy, onBack);
+  const close = guard(busy, onClose);
   return (
-    <Modal small title={`ลบ ${code} · ${s.name} ถาวร?`} sub="ลบแล้วกู้คืนไม่ได้" onClose={close} onSubmit={go}>
+    <Modal small title={`ลบ ${s.code} · ${s.name} ถาวร?`} sub="ลบแล้วกู้คืนไม่ได้" onClose={close} onSubmit={go}>
       <div className="tm-body">
         <p className="pl-warn">ล็อกอินนี้จะใช้ไม่ได้และกู้คืนไม่ได้</p>
-        <p className="pl-warn">งานที่ยังไม่เริ่มของคนนี้จะกลายเป็นยังไม่มีคนทำ</p>
+        <p className="pl-warn">งานที่เขาทำไปแล้วยังอยู่ในประวัติ โดยแสดงเป็น “{s.name} (ลบแล้ว)”</p>
+        <p className="pl-warn">งานที่ยังไม่เริ่มจะกลายเป็น “ยังไม่มีคนทำ”</p>
         <FormError text={err && err.text} />
+        {err && err.code === 'owns_templates' && <p><Link className="ghost" href="/supervisor/routines">ไปที่งานประจำ</Link></p>}
       </div>
       <Foot>
         <button type="button" className="secondary" onClick={close}>ยกเลิก</button>
-        {hist && s.active && (
-          <button type="button" className="secondary" aria-disabled={!!busy} onClick={off}><Glyph n="power" />{busy === 'off' ? 'กำลังบันทึก…' : 'ปิดใช้งานแทน'}</button>
-        )}
-        <button type="submit" className="primary" aria-disabled={!!busy}>{busy === 'del' ? 'กำลังลบ…' : 'ลบถาวร'}</button>
+        <button type="submit" className="primary" aria-disabled={busy}>{busy ? 'กำลังลบ…' : 'ลบถาวร'}</button>
       </Foot>
     </Modal>
   );
@@ -444,7 +433,7 @@ export default function Staff({ user }) {
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState(NO_FILTER);
   const [sort, setSort] = useState({ k: 'code', dir: 1 });
-  const [box, setBox] = useState(null); // { kind: 'add' | 'edit' | 'pw' | 'off', s }
+  const [box, setBox] = useState(null); // { kind: 'add' | 'edit' | 'pw' | 'off' | 'del', s }
   const [busy, setBusy] = useState(null); // id of the person being switched on
   const [fresh, setFresh] = useState(null); // id of the login just made
   const [self, setSelf] = useState(user); // the signed-in supervisor, renamed here when they edit their own row
@@ -452,6 +441,7 @@ export default function Staff({ user }) {
   const seq = useRef(0);
   const search = useRef(null);
   const reveal = useRef(null); // id of a row to scroll to once the list holds it
+  const refocus = useRef(''); // selector to focus after the next list render if focus was lost
 
   const load = useCallback(async () => {
     const n = ++seq.current;
@@ -466,15 +456,16 @@ export default function Staff({ user }) {
   useEffect(() => {
     const row = reveal.current && data && document.getElementById(`st-${reveal.current}`);
     if (row) { row.scrollIntoView({ block: 'nearest' }); reveal.current = null; }
+    // checked after the new list is on screen: only then has a vanished row taken the focus to <body>
+    if (refocus.current && document.activeElement === document.body) (document.querySelector(refocus.current) || document.querySelector('.s-sup h1'))?.focus();
+    refocus.current = '';
   }, [data]);
 
   const open = (kind, s) => { setFresh(null); setBox({ kind, s }); };
   // reload without holding the box open: a slow list call must not trap a saved box. If the row leaves the list (a
-  // filter) and takes the focused button with it, focus goes to the heading instead of the top of the page.
-  const reload = async (toRow) => {
-    await load();
-    if (document.activeElement === document.body) ((toRow && document.querySelector('.st-acts button')) || document.querySelector('.s-sup h1'))?.focus();
-  };
+  // filter, or a delete) and takes the focused button with it, focus goes to the first row action or the heading
+  // instead of the top of the page.
+  const reload = (toRow) => { refocus.current = toRow ? '.st-acts button' : '.s-sup h1'; return load(); };
   const done = (text, name) => {
     if (name && box.s.id === user.id) { setSelf((u) => ({ ...u, name })); rename(name); } // the top bar and the cached session
     toast(text);
@@ -512,9 +503,10 @@ export default function Staff({ user }) {
     <Shell user={self} active="staff" overlay={(
       <>
         {box && box.kind === 'add' && <AddBox onClose={() => setBox(null)} onCreated={created} toast={toast} />}
-        {box && box.kind === 'edit' && <EditBox s={box.s} me={box.s.id === user.id} onClose={() => setBox(null)} onSaved={done} onChanged={load} onDeleted={deleted} toast={toast} />}
+        {box && box.kind === 'edit' && <EditBox s={box.s} me={box.s.id === user.id} onClose={() => setBox(null)} onSaved={done} onChanged={load} />}
         {box && box.kind === 'pw' && <ResetBox s={box.s} onClose={() => setBox(null)} onReset={load} toast={toast} />}
         {box && box.kind === 'off' && <OffBox s={box.s} onClose={() => setBox(null)} onSaved={done} />}
+        {box && box.kind === 'del' && <DeleteBox s={box.s} onClose={() => setBox(null)} onDeleted={deleted} onStale={load} />}
         {toastNode}
       </>
     )}>
@@ -601,6 +593,9 @@ export default function Staff({ user }) {
                           ) : (
                             <button type="button" className="ghost" aria-disabled={busy === s.id} aria-label={`เปิดใช้งาน ${s.name}`}
                               onClick={() => turnOn(s)}><Glyph n="power" />เปิดใช้งาน</button>
+                          )}
+                          {!s.active && !me && (
+                            <button type="button" className="secondary" aria-label={`ลบ ${s.name} ถาวร`} onClick={() => open('del', s)}><Icon n="trash" />ลบ</button>
                           )}
                         </div>
                       </td>
