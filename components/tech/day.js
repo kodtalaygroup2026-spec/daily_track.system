@@ -1,35 +1,79 @@
-// The technician's day: tasks, offline queue, camera gate, swipe and toast.
-// Kept as plain mutable state plus redraw() (a direct port of the static app.js) because the camera, change and pointer
-// flow must read the latest values synchronously, and the file input has to be clicked inside the user gesture.
-// Photos are the gate (a swipe first asks "finish?" in a dialog): a task starts only with a BEFORE photo and finishes only with an AFTER photo.
-import { clockNow } from '@/lib/dates';
-import { loadDay, saveDay } from '@/lib/tech-store';
+// The technician's day: tasks from the database, camera gate, sub-task ticks, swipe and toast.
+// Kept as plain mutable state plus redraw() because the camera, change and pointer flow must read the latest values
+// synchronously, and the file input has to be clicked inside the user gesture.
+// Photos are the gate (a swipe first asks "finish?" in a dialog): a task starts only with a BEFORE photo and finishes only
+// with an AFTER photo, and only once every sub-task is ticked. Every change is saved first, then the day is read again.
+import { today } from '@/lib/dates';
+import { errText, techDay, techFinish, techSetItem, techSetPhoto, techStart, techUndo, uploadPhoto } from '@/lib/api';
 
-// downscale so ~12 photos fit in localStorage. shortcut: 800px / JPEG .6 may be too small to read a serial number, raise when supervisors ask
+const OFFLINE = 'ต้องต่อเน็ตก่อนจึงจะบันทึกได้';
+
+// downscaled JPEG, longest side 1280 px; the storage limit is 2 MB and this lands far below it
 async function toJpeg(file) {
   const bmp = await createImageBitmap(file);
-  const k = Math.min(1, 800 / Math.max(bmp.width, bmp.height));
+  const k = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
   const c = document.createElement('canvas');
   c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
   c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', 0.6);
+  bmp.close();
+  return new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.72));
 }
 
-const allowed = (t, kind) => kind === 'before' || (t.status === 'doing' && !!t.before);
 const q = (s) => document.querySelector(s);
+const ticked = (t) => t.items.every((i) => i.done);
+const allowed = (t, kind) => kind === 'before' || (t.status === 'doing' && !!t.before && ticked(t));
 
 export function createDay(redraw) {
   const d = {
-    ready: false, tasks: [], queue: [], photosOk: true, sentCount: 0, busy: false,
-    lastChange: null, // { id, from } for the unwipe animation, read by the render that follows a status change
+    day: today(), loaded: false, error: '', tasks: [], busy: false,
+    from: {}, // per task: the status it just left, for the unwipe animation
     rev: {}, // per task: bumped on every status change so the box remounts and its animation replays
-    toast: { text: '', undoId: 0, show: false },
+    toast: { text: '', undoId: '', show: false },
     confirm: null, // { id } of the task the finish dialog is about
   };
-  let fileEl = null, dlgEl = null, pending = null, focus = null, drag = null, toastTimer = 0, sentTimer = 0;
-  // pending = the photo the open camera is for
+  let fileEl = null, dlgEl = null, pending = null, focus = null, drag = null, toastTimer = 0, retryTimer = 0, seq = 0;
+  // pending = the photo the open camera is for; seq = the newest load, older answers are dropped
+  const ticks = new Set(); // sub-task ids being saved
+  const find = (id) => d.tasks.find((x) => x.id === id);
 
-  const save = () => { d.photosOk = saveDay(d.tasks, d.queue); };
+  /* ---- reading the day ---- */
+  // true when the screen shows what the server has (a superseded load counts: the newer one answers)
+  async function load() {
+    const n = ++seq, day = today();
+    try {
+      const rows = await techDay(day);
+      if (n !== seq || ticks.size) return true; // a tick in flight is shown ahead of the server; its own reload follows
+      for (const t of rows) {
+        const was = find(t.id);
+        if (was && was.status !== t.status) { d.from[t.id] = was.status; d.rev[t.id] = (d.rev[t.id] || 0) + 1; }
+      }
+      Object.assign(d, { day, tasks: rows, loaded: true, error: '' });
+      redraw();
+      return true;
+    } catch (err) {
+      if (n !== seq) return true;
+      d.error = errText(err); // the last data stays on screen
+      redraw();
+      return false;
+    }
+  }
+  // read the day again after a saved change; on a stale list say so instead of the success text, and try once more soon
+  async function reload(text, undoId) {
+    if (await load()) return text && showToast(text, undoId, !undoId);
+    showToast('บันทึกแล้ว แต่โหลดรายการใหม่ไม่ได้ · กำลังลองอีกครั้ง', 0, true);
+    retryTimer = setTimeout(load, 3000);
+  }
+  // the timed and tab-return reload never interrupts a drag, the dialog, the camera or a save
+  function refresh() {
+    const camera = pending && Date.now() - pending.at < 120000; // a camera that never answered must not block for good
+    if (d.busy || ticks.size || drag || camera || (dlgEl && dlgEl.open)) return;
+    load();
+  }
+  async function retry() {
+    d.error = ''; redraw();
+    await load();
+    if (d.error) focusAfter(null, 'retry');
+  }
 
   // move focus to where the next action is, since the list is rebuilt; runs after the commit (afterCommit)
   function focusAfter(id, to) { focus = { id, to }; redraw(); }
@@ -37,31 +81,16 @@ export function createDay(redraw) {
     if (!focus) return;
     const { id, to } = focus;
     focus = null;
-    const el = to === 'doing' ? q(`.track[data-id="${id}"] .thumb`) || q(`[data-photo="${id}"]`)
+    const el = to === 'retry' ? q('.retry')
+      : to === 'doing' ? q(`.track[data-id="${id}"] .thumb`) || q(`[data-task="${id}"]`) || q(`[data-photo="${id}"]`)
       // after a finish, focus the next thing to do (the 8 s undo button would vanish under the user's focus)
-      : to === 'done' ? q('[data-start]') || q('.thumb') || q('#undo')
+      : to === 'done' ? q('[data-start]') || q('.thumb') || q('[data-item]') || q('#undo')
       : to === 'todo' ? q(`[data-start="${id}"]`)
       : q(`[data-photo="${id}"]`);
     if (el) el.focus();
   }
-
-  function queuePhoto(id, ph) {
-    if (!navigator.onLine && !d.queue.some((x) => x.id === id && x.ph === ph)) d.queue.push({ id, ph });
-  }
-
-  function setStatus(id, to, opts = {}) {
-    const t = d.tasks.find((x) => x.id === id);
-    if (!t || t.status === to) return;
-    // the gate: the photo must already be on the task, whichever control got here
-    if ((to === 'doing' && t.status === 'todo' && !t.before) || (to === 'done' && !(t.before && t.after))) return;
-    d.lastChange = { id, from: t.status };
-    d.rev[id] = (d.rev[id] || 0) + 1;
-    t.status = to;
-    if (!navigator.onLine && !opts.noQueue) { d.queue.push({ id, to }); if (opts.ph) queuePhoto(id, opts.ph); }
-    save();
-    if (to === 'done') showToast(`จบงาน “${t.title}” แล้ว`, t.id);
-    focusAfter(id, to);
-  }
+  // where focus returns when the camera for p did not lead to a change
+  const focusFor = (p) => (p.kind === 'after' ? 'doing' : (find(p.id) || {}).status === 'todo' ? 'todo' : 'photo');
 
   // undoId set: the toast carries "เลิกทำ" for 8 s; otherwise it is a plain 4 s message that never replaces a live undo
   // force: a failure the technician must hear about may replace a live undo toast
@@ -69,33 +98,63 @@ export function createDay(redraw) {
     const live = d.toast.show && d.toast.undoId;
     if (!undoId && !force && live) return;
     clearTimeout(toastTimer);
-    d.toast = { text, undoId: undoId || 0, show: true }; // always rendered, so the live region announces the text
-    toastTimer = setTimeout(hideToast, undoId ? 8000 : 4000);
+    d.toast = { text, undoId: undoId || '', show: true }; // always rendered, so the live region announces the text
+    toastTimer = setTimeout(hideToast, undoId || force ? 8000 : 4000);
     redraw();
   }
   function hideToast() { d.toast = { ...d.toast, show: false }; redraw(); }
+  function offline() {
+    if (navigator.onLine) return false;
+    showToast(OFFLINE, 0, true);
+    return true;
+  }
 
-  function undo() {
+  async function undo() {
     const id = d.toast.undoId;
-    const t = d.tasks.find((x) => x.id === id);
-    const i = d.queue.map((x) => x.id === id && x.to === 'done').lastIndexOf(true);
-    if (i >= 0) d.queue.splice(i, 1);
-    d.queue = d.queue.filter((x) => !(x.id === id && x.ph === 'after'));
-    if (t) { t.after = null; t.afterAt = null; } // the finish is undone, so its photo goes with it
-    hideToast(); setStatus(id, 'doing', { noQueue: i >= 0 });
-    showToast('เลิกทำแล้ว · ลบรูปหลังแล้ว ต้องถ่ายใหม่ตอนจบงาน');
+    if (!id || d.busy || offline()) return;
+    d.busy = true; redraw();
+    try {
+      await techUndo(id);
+      await reload('เลิกทำแล้ว · กลับเป็นกำลังทำ ต้องถ่ายรูปหลังใหม่ตอนจบงาน');
+      focusAfter(id, 'doing');
+    } catch (err) {
+      showToast(errText(err), 0, true);
+      if (err.code !== 'network') load();
+    } finally {
+      d.busy = false; redraw();
+    }
+  }
+
+  /* ---- sub-tasks: ticked only while the task is doing; shown at once, put back if the save fails ---- */
+  async function toggleItem(taskId, itemId) {
+    const t = find(taskId), it = t && t.status === 'doing' && t.items.find((i) => i.id === itemId);
+    if (!it || d.busy || ticks.has(itemId) || offline()) return;
+    ticks.add(itemId);
+    it.done = !it.done; redraw();
+    try {
+      await techSetItem(itemId, it.done);
+      ticks.delete(itemId);
+      load();
+    } catch (err) {
+      it.done = !it.done;
+      ticks.delete(itemId);
+      showToast(errText(err), 0, true);
+      redraw();
+      if (err.code !== 'network') load();
+    }
   }
 
   /* ---- camera: every start and finish goes through here ---- */
   function openCamera(id, kind) {
     if (d.busy) return;
-    pending = { id, kind }; // overwritten, never blocking: a cancelled camera must not leave the app stuck
+    if (offline()) return focusAfter(id, focusFor({ id, kind }));
+    pending = { id, kind, at: Date.now() }; // overwritten, never blocking: a cancelled camera must not leave the app stuck
     fileEl.value = ''; fileEl.click();
   }
 
   /* ---- confirm before finishing: the swipe only asks; the camera opens from the dialog's own button ---- */
   function askFinish(id) {
-    const t = d.tasks.find((x) => x.id === id);
+    const t = find(id);
     if (d.busy || !dlgEl || dlgEl.open || !t || !allowed(t, 'after')) return;
     d.confirm = { id };
     dlgEl.returnValue = '';
@@ -116,30 +175,40 @@ export function createDay(redraw) {
   function release(p) {
     pending = null;
     if (!p) return;
-    const t = d.tasks.find((x) => x.id === p.id);
+    const t = find(p.id);
     showToast(p.kind === 'after' ? 'ยังไม่จบงาน · ต้องถ่ายรูปหลังก่อน'
       : t && t.status === 'todo' ? 'ยังไม่ได้เริ่มงาน · ต้องถ่ายรูปก่อน'
       : t && !t.before ? 'ยังไม่มีรูปก่อน · ต้องถ่ายก่อนจึงจะจบงานได้' : 'ไม่ได้ถ่ายใหม่ · ใช้รูปเดิมต่อ');
-    focusAfter(p.id, p.kind === 'after' ? 'doing' : t && t.status === 'todo' ? 'todo' : 'photo');
+    focusAfter(p.id, focusFor(p));
   }
 
   async function onChange(e) {
     const f = e.target.files[0], p = pending;
     if (!p) return;
     if (!f) return release(p);
-    pending = null; d.busy = true; redraw();
+    pending = null;
+    const t = find(p.id);
+    if (!t || !allowed(t, p.kind)) { // the day changed while the camera was open
+      showToast('งานเปลี่ยนไปแล้ว รูปที่ถ่ายไม่ได้บันทึก · ดูรายการใหม่อีกครั้ง', 0, true);
+      load();
+      return focusAfter(p.id, 'done');
+    }
+    if (offline()) return focusAfter(p.id, focusFor(p));
+    const was = t.status, to = focusFor(p);
+    d.busy = true; redraw();
     try {
-      const t = d.tasks.find((x) => x.id === p.id);
-      if (!t || !allowed(t, p.kind)) return; // the day was reset while the camera was open
-      t[p.kind] = await toJpeg(f);
-      t[p.kind + 'At'] = clockNow();
-      if (p.kind === 'before' && t.status === 'todo') setStatus(t.id, 'doing', { ph: 'before' });
-      else if (p.kind === 'after' && t.status === 'doing') setStatus(t.id, 'done', { ph: 'after' });
-      else { queuePhoto(t.id, p.kind); save(); focusAfter(t.id, 'photo'); }
-      if (!d.photosOk) showToast('พื้นที่ในเครื่องเต็ม · รูปจะหายถ้าปิดหน้านี้', null, true);
+      const blob = await toJpeg(f).catch(() => null);
+      if (!blob) { showToast('เปิดรูปนี้ไม่ได้ · ลองถ่ายใหม่', 0, true); return focusAfter(p.id, to); }
+      const path = await uploadPhoto(t.id, p.kind, blob);
+      if (p.kind === 'after') await techFinish(t.id, path);
+      else if (was === 'todo') await techStart(t.id, path);
+      else await techSetPhoto(t.id, p.kind, path);
+      await reload(p.kind === 'after' && `จบงาน “${t.title}” แล้ว`, t.id);
+      focusAfter(t.id, p.kind === 'after' ? 'done' : was === 'todo' ? 'doing' : 'photo');
     } catch (err) {
-      showToast('เปิดรูปนี้ไม่ได้ · ลองถ่ายใหม่', null, true);
-      focusAfter(p.id, p.kind === 'after' ? 'doing' : 'photo');
+      showToast(`บันทึกไม่สำเร็จ · ${errText(err)}`, 0, true); // the task is unchanged, its camera button is still there
+      focusAfter(p.id, to);
+      if (err.code !== 'network') load();
     } finally {
       d.busy = false; redraw();
     }
@@ -157,12 +226,14 @@ export function createDay(redraw) {
   /* ---- list events (delegated, as in the static page) ---- */
   function onClick(e) {
     const start = e.target.closest('[data-start]');
-    if (start) return openCamera(Number(start.dataset.start), 'before');
+    if (start) return openCamera(start.dataset.start, 'before');
     const photo = e.target.closest('[data-photo]');
-    if (photo) return openCamera(Number(photo.dataset.photo), 'before');
-    // a click with no pointer drag (screen reader double-tap, switch or voice control) opens the camera for the after photo
+    if (photo) return openCamera(photo.dataset.photo, 'before');
+    const item = e.target.closest('[data-item]');
+    if (item) return toggleItem(item.dataset.task, item.dataset.item);
+    // a click with no pointer drag (screen reader double-tap, switch or voice control) asks to finish
     const th = e.target.closest('.thumb');
-    if (th && e.detail === 0) askFinish(Number(th.parentElement.dataset.id));
+    if (th && e.detail === 0) askFinish(th.parentElement.dataset.id);
   }
 
   // swipe to finish: a forgiving drag on a dedicated track, never on the whole card.
@@ -171,7 +242,7 @@ export function createDay(redraw) {
     const th = e.target.closest('.thumb');
     if (!th) return;
     const track = th.parentElement;
-    drag = { th, track, id: Number(track.dataset.id), startX: e.clientX, x: 0, max: track.clientWidth - th.offsetWidth - 8 };
+    drag = { th, track, id: track.dataset.id, startX: e.clientX, x: 0, max: track.clientWidth - th.offsetWidth - 8 };
     th.setPointerCapture(e.pointerId);
     track.classList.add('drag');
   }
@@ -193,32 +264,31 @@ export function createDay(redraw) {
     const th = e.target.closest('.thumb');
     if (th && ['Enter', ' ', 'ArrowRight'].includes(e.key)) {
       e.preventDefault();
-      askFinish(Number(th.parentElement.dataset.id));
+      askFinish(th.parentElement.dataset.id);
     }
   }
 
-  // mount: read storage (never during the first render) and listen for connectivity; returns the cleanup
+  // mount: read the day, then keep it fresh (also rolls over at midnight, because load() asks for today's date)
   function start() {
-    Object.assign(d, loadDay(), { ready: true });
-    const onOnline = () => {
-      d.sentCount = d.queue.length; d.queue = []; save(); redraw();
-      clearTimeout(sentTimer);
-      sentTimer = setTimeout(() => { d.sentCount = 0; redraw(); }, 3000);
-    };
-    window.addEventListener('online', onOnline);
+    load();
+    const seen = () => { if (!document.hidden) refresh(); };
+    const back = () => { redraw(); refresh(); };
+    const timer = setInterval(seen, 60000);
+    document.addEventListener('visibilitychange', seen);
+    window.addEventListener('online', back);
     window.addEventListener('offline', redraw);
-    redraw();
     return () => {
-      window.removeEventListener('online', onOnline);
+      clearInterval(timer); clearTimeout(toastTimer); clearTimeout(retryTimer);
+      document.removeEventListener('visibilitychange', seen);
+      window.removeEventListener('online', back);
       window.removeEventListener('offline', redraw);
-      clearTimeout(toastTimer); clearTimeout(sentTimer);
     };
   }
 
-  // after every commit: the animation hint is spent, and focus can move into the new DOM
-  // lastChange stays until the next status change: clearing it on an unrelated redraw (a toast timer, a connectivity event)
+  // after every commit: focus can move into the new DOM
+  // d.from stays until the next status change: clearing it on an unrelated redraw (a toast timer, a connectivity event)
   // would drop data-from and cut the wipe animation short. The box remounts per status change, so it cannot replay.
   function afterCommit() { runFocus(); }
 
-  return Object.assign(d, { start, afterCommit, undo, onChange, fileRef, dialogRef, confirmGo, onDialogClose, onDialogClick, onClick, onPointerDown, onPointerMove, endDrag, onKeyDown });
+  return Object.assign(d, { start, afterCommit, undo, retry, onChange, fileRef, dialogRef, confirmGo, onDialogClose, onDialogClick, onClick, onPointerDown, onPointerMove, endDrag, onKeyDown });
 }

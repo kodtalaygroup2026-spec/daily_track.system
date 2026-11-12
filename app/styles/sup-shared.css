@@ -1,0 +1,20 @@
+/* Supervisor pieces shared by the day screen and the plan pages. Scope: .s-sup (tokens come from sup.css). */
+
+/* sub-task editor */
+.s-sup .items { display: grid; gap: .5rem; }
+.s-sup .items-empty { color: var(--quiet); }
+.s-sup .items-row { display: flex; align-items: center; gap: .5rem; }
+.s-sup .items-row input { flex: 1; min-width: 0; }
+.s-sup .items-n { flex: none; width: 1.75rem; text-align: center; font: 700 1rem var(--kanit); color: var(--quiet); font-variant-numeric: tabular-nums; }
+.s-sup .items-x {
+  flex: none; width: 2.75rem; height: 2.75rem; display: grid; place-items: center;
+  background: none; border: 2px solid var(--ink); border-radius: 10px; cursor: pointer; transition: background-color .15s ease;
+}
+.s-sup .items-x:hover { background: var(--hover); }
+.s-sup .items-add {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem; justify-self: start;
+  min-height: 2.75rem; padding: 0 1rem; background: #fff; border: 2px dashed var(--ink); border-radius: 10px;
+  font: 600 1rem var(--kanit); cursor: pointer; transition: background-color .15s ease;
+}
+.s-sup .items-add:hover:not(:disabled) { background: var(--hover); }
+.s-sup .items-add:disabled { color: var(--quiet); border-color: var(--quiet); cursor: not-allowed; }

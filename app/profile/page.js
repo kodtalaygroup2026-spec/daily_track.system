@@ -16,11 +16,11 @@ export default function Page() {
 
   function say(text, bad) { setMsg({ text, bad: !!bad }); }
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     const v = name.current.value.trim().replace(/\s+/g, ' ');
     if (!v) { say('กรอกชื่อที่แสดง', true); return name.current.focus(); }
-    if (!rename(v)) { say('เบราว์เซอร์ไม่ให้บันทึกชื่อ ลองปิดโหมดส่วนตัว', true); return name.current.focus(); }
+    if (!(await rename(v))) { say('บันทึกชื่อไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่', true); return name.current.focus(); }
     name.current.value = v;
     say('บันทึกชื่อแล้ว');
   }
@@ -50,9 +50,7 @@ export default function Page() {
           <button type="submit" className="primary">บันทึกชื่อ</button>
         </form>
 
-        <button type="button" id="logout" className="secondary" onClick={signOut}>ออกจากระบบ</button>
-        <p className="note">ข้อมูลตัวอย่าง · ชื่อใหม่ใช้กับหน้านี้และหัวข้อของแอป ยังไม่เปลี่ยนในรายการของหัวหน้า</p>
-      </main>
+        <button type="button" id="logout" className="secondary" onClick={signOut}>ออกจากระบบ</button>      </main>
     </div>
   );
 }

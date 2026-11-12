@@ -41,7 +41,8 @@
   border: 0; border-radius: 12px; font: 700 1rem var(--kanit); cursor: pointer;
 }
 .s-sup #create { margin-left: auto; }
-.s-sup button.primary:active { background: var(--quiet); }
+.s-sup button.primary:active, .s-sup button.primary[aria-disabled="true"] { background: var(--quiet); }
+.s-sup button.primary[aria-disabled="true"] { cursor: default; }
 .s-sup button.primary:focus-visible { outline-color: var(--ink); outline-offset: 3px; }
 .s-sup button.ghost, .s-sup a.ghost {
   display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 .875rem; background: transparent;
@@ -93,7 +94,7 @@
 .s-sup th button:focus-visible { outline-offset: -4px; }
 .s-sup td { height: 4.25rem; padding: 0 1rem; border-bottom: 2px solid var(--ground); font-variant-numeric: tabular-nums; }
 .s-sup tr:last-child td { border-bottom: 0; }
-.s-sup .c-s { width: 8.5rem; } .s-sup .c-t { width: 9.5rem; } .s-sup .c-h { width: 9rem; } .s-sup .c-w { width: 7rem; }
+.s-sup .c-s { width: 8.5rem; } .s-sup .c-t { width: 9.5rem; } .s-sup .c-h { width: 11rem; } .s-sup .c-w { width: 7rem; }
 .s-sup td.c-h p { color: var(--quiet); }
 .s-sup td.c-w span:not(.sr) { display: block; white-space: nowrap; }
 .s-sup td.late small { white-space: nowrap; }
@@ -135,8 +136,17 @@
 .s-sup .empty button { margin-top: 1rem; }
 .s-sup .empty[hidden] { display: none; }
 
-.s-sup .note { margin-top: 1.25rem; color: var(--quiet); display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; }
-.s-sup .note button { min-height: 2.75rem; padding: 0; background: none; border: 0; color: var(--ink); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
+/* routine / cover / needs-cover marks: ink on white, always an icon and words (colour is for task status only) */
+.s-sup .tag { display: inline-flex; align-items: center; gap: .375rem; margin-left: .75rem; padding: 0 .5rem; border: 2px solid var(--ink); border-radius: 10px; color: var(--ink); font: 700 1rem var(--kanit); white-space: nowrap; }
+.s-sup td.c-h .swap { display: flex; align-items: center; gap: .375rem; color: var(--ink); font-weight: 700; }
+.s-sup .warn { display: flex; align-items: center; gap: .375rem; font: 700 1rem var(--kanit); }
+.s-sup td.c-h .find, .s-sup .coverbar .ghost, .s-sup .loaderr .ghost { margin-top: .25rem; min-height: 2.75rem; padding: 0 .875rem; background: #fff; border: 2px solid var(--ink); border-radius: 10px; font: 700 1rem var(--kanit); cursor: pointer; transition: background-color .15s ease; }
+.s-sup td.c-h .find:hover, .s-sup .coverbar .ghost:hover, .s-sup .loaderr .ghost:hover { background: var(--hover); }
+.s-sup .coverbar, .s-sup .loaderr { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-bottom: 1rem; padding: .5rem 1rem; background: #fff; border: 2px solid var(--ink); border-radius: 12px; }
+.s-sup .coverbar p, .s-sup .loaderr p { display: flex; align-items: center; gap: .5rem; font-weight: 700; }
+.s-sup .coverbar .ghost, .s-sup .loaderr .ghost { margin: 0; }
+.s-sup .loaderr { border-width: 4px; }
+.s-sup .loading { margin-bottom: 1rem; color: var(--quiet); font-weight: 700; }
 
 /* task box: a modal over the page (create, view, edit). Header and footer stay put, the middle scrolls. */
 .s-sup .tm-scrim { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 1rem; background: rgba(20, 24, 27, .7); animation: fade-in .2s ease; }
@@ -151,7 +161,7 @@
 .s-sup .tm-grid .field { margin: 0; }
 .s-sup .tm-grid .full { grid-column: 1 / -1; }
 .s-sup .tm-body .stat { margin-top: 1.25rem; }
-.s-sup .tm-foot { margin: 0; padding: 1rem 1.5rem; border-top: 2px solid var(--ground); justify-content: flex-end; }
+.s-sup .tm .tm-foot { margin: 0; padding: 1rem 1.5rem; border-top: 2px solid var(--ground); justify-content: flex-end; }
 .s-sup .tm-foot .primary { flex: none; min-width: 10rem; }
 .s-sup .x { flex: none; width: 3rem; height: 3rem; display: grid; place-items: center; background: none; border: 2px solid var(--ink); border-radius: 12px; cursor: pointer; transition: background-color .15s ease; }
 .s-sup .x:hover { background: var(--hover); }
@@ -179,6 +189,24 @@
 .s-sup .noimg { display: grid; place-items: center; height: 7rem; padding: 0 .5rem; text-align: center; border: 2px dashed var(--ink); border-radius: 12px; color: var(--quiet); }
 .s-sup .noimg.miss { border-width: 4px; color: var(--ink); font-weight: 700; }
 .s-sup .photo small { display: block; margin-top: .375rem; color: var(--quiet); font-size: 1rem; }
+/* create mode: once or every day. Real radio buttons, so the arrow keys work; the chosen one is inked and ticked. */
+.s-sup .kind { display: flex; gap: 2px; min-width: 0; margin: 1.25rem 0 0; padding: 0; border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; background: var(--ink); }
+.s-sup .kind label { position: relative; flex: 1; }
+.s-sup .kind input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.s-sup .kind span { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 3.25rem; padding: 0 1rem; background: #fff; font: 700 1rem var(--kanit); text-align: center; transition: background-color .15s ease; }
+.s-sup .kind input:not(:checked):hover + span { background: var(--hover); }
+.s-sup .kind input:checked + span { background: var(--ink); color: #fff; }
+.s-sup .kind input:focus-visible + span { outline: 4px solid var(--ink); outline-offset: -6px; }
+.s-sup .kind input:checked:focus-visible + span { outline-color: var(--yellow); }
+.s-sup .hint { margin-top: .75rem; color: var(--quiet); }
+.s-sup .hint.warn { display: flex; align-items: flex-start; gap: .5rem; color: var(--ink); font: 500 1rem 'Noto Sans Thai', system-ui, sans-serif; }
+.s-sup .hint.warn .ic { margin-top: .125rem; }
+.s-sup .routine-line { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin-top: .75rem; font-weight: 700; }
+.s-sup .routine-line a { display: inline-flex; align-items: center; min-height: 2.75rem; margin-left: .5rem; color: var(--ink); text-underline-offset: .2em; }
+.s-sup .items-ro { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.s-sup .items-ro li { display: flex; align-items: center; gap: .625rem; }
+.s-sup .items-ro .box { flex: none; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border: 2px solid var(--ink); border-radius: 6px; }
+.s-sup .items-ro .ic { width: 1rem; height: 1rem; }
 .s-sup .actions { display: flex; gap: .75rem; margin-top: 1.25rem; }
 .s-sup .actions .primary { flex: 1; }
 .s-sup .lock { margin-top: 1rem; color: var(--quiet); }
@@ -193,7 +221,7 @@
 .s-sup dialog p { margin: .75rem 0 1rem; }
 
 .s-sup .toast {
-  position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%); z-index: 20;
+  position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%); z-index: 70; /* above the task box scrim (50) and the calendar (60) */
   max-width: min(92vw, 34rem); padding: 1rem 1.5rem; background: var(--ink); color: #fff; border-radius: 14px; font-weight: 700;
 }
 .s-sup .toast { visibility: hidden; opacity: 0; transition: opacity .15s linear; }
@@ -236,7 +264,7 @@
 @keyframes pop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
 /* every pressable thing that can be pointed at turns gray under the mouse, and gets there smoothly */
-.s-sup button.ghost, .s-sup a.ghost, .s-sup .seg button, .s-sup .quick button, .s-sup .cb, .s-sup .cn, .s-sup .ddb, .s-sup .cd, .s-sup .ddl li, .s-sup .shot, .s-sup .slot.miss, .s-sup th button, .s-sup .note button, .s-sup button.secondary, .s-sup td { transition: background-color .15s ease; }
+.s-sup button.ghost, .s-sup a.ghost, .s-sup .seg button, .s-sup .quick button, .s-sup .cb, .s-sup .cn, .s-sup .ddb, .s-sup .cd, .s-sup .ddl li, .s-sup .shot, .s-sup .slot.miss, .s-sup th button, .s-sup button.secondary, .s-sup td { transition: background-color .15s ease; }
 .s-sup button.ghost:hover:not(:disabled):not([aria-disabled="true"]), .s-sup a.ghost:hover, .s-sup button.secondary:hover,
 .s-sup .quick button:hover, .s-sup .cb:hover, .s-sup .cn:hover, .s-sup .ddb:hover:not(:disabled), .s-sup .slot.miss:hover,
 .s-sup th button:hover { background: var(--hover); }

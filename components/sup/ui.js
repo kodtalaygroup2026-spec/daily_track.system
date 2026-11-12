@@ -31,6 +31,13 @@ const SYMBOLS = {
   key: ['M8 15a4 4 0 100-8 4 4 0 000 8zM11 12l9 9M16 17l2-2M18.5 19.5l2-2', 2.2],
   sliders: ['M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6', 2.4],
   user: ['M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-4.4 3.6-8 8-8s8 3.6 8 8', 2.2],
+  repeat: ['M4 11V9a3 3 0 013-3h11M15 3l3 3-3 3M20 13v2a3 3 0 01-3 3H6M9 21l-3-3 3-3', 2.4], // a routine: every day
+  week: ['M4 6.5h16V20H4zM4 11h16M8 14.5h.01M12 14.5h.01M16 14.5h.01M8 17.5h.01M12 17.5h.01M8.5 3.5v3M15.5 3.5v3', 2.4], // the weekly roster
+  swap: ['M5 8h13M14 4l4 4-4 4M19 16H6M10 12l-4 4 4 4', 2.4], // someone covers
+  trash: ['M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13M10.5 11v5M13.5 11v5', 2.2],
+  pencil: ['M4 20l1-4L16 5l3 3L8 19zM14 7l3 3', 2.2],
+  steps: ['M9 6h11M9 12h11M9 18h11M3.5 6l1.5 1.5L7 5M3.5 12l1.5 1.5L7 11M3.5 18l1.5 1.5L7 17', 2.4], // sub-tasks
+  alert: ['M12 4l9 16H3zM12 10v4M12 17h.01', 2.4],
 };
 export function Sprite() {
   return (
