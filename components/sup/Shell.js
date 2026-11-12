@@ -12,7 +12,7 @@ const MENU_KEY = 'dailytrack.menu.v1';
 const isDocked = () => window.innerWidth >= 1280;
 const savedMenu = () => { try { return localStorage.getItem(MENU_KEY) !== 'closed'; } catch (e) { return true; } };
 
-// active: 'day' | 'routines' | 'roster'. actions: buttons placed in the top bar before the profile link. overlay: modal boxes, toast.
+// active: 'day' | 'routines' | 'roster' | 'staff'. actions: buttons placed in the top bar before the profile link. overlay: modal boxes, toast.
 export default function Shell({ user, active, actions, overlay, children }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -79,7 +79,7 @@ export default function Shell({ user, active, actions, overlay, children }) {
           </ul>
           <p className="mgroup"><span>ตั้งค่า</span></p>
           <ul>
-            <li><span className="mitem soon" aria-disabled="true"><Icon n="users" /><span className="mtxt">พนักงานและรหัสพนักงาน<small>เร็วๆ นี้</small></span></span></li>
+            <li><Link href="/supervisor/staff" className="mitem" aria-current={here('staff')}><Icon n="users" /><span className="mtxt">พนักงานและรหัสพนักงาน</span></Link></li>
             <li><span className="mitem soon" aria-disabled="true"><Icon n="key" /><span className="mtxt">สิทธิ์การใช้งาน<small>เร็วๆ นี้</small></span></span></li>
             <li><span className="mitem soon" aria-disabled="true"><Icon n="sliders" /><span className="mtxt">ตั้งค่าอื่นๆ<small>เร็วๆ นี้</small></span></span></li>
           </ul>
