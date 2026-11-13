@@ -3,6 +3,7 @@ import { useEffect, useReducer, useRef } from 'react';
 import Link from 'next/link';
 import { th, toDate } from '@/lib/dates';
 import { branchLabel } from '@/lib/branches';
+import '@/app/styles/tech-calendar.css';
 import { createDay } from './day';
 import TaskBox, { Icon, Sprite } from './TaskBox';
 
@@ -30,7 +31,12 @@ export default function TechDay({ user }) {
       <div className="app">
         <header className="bar">
           <span className="brand">{user.branch ? `Daily Track · ${branchLabel(user.branch)}` : 'Daily Track'}</span>
-          <Link className="who" href="/profile" title="โปรไฟล์ของฉัน"><span id="whoName">{user.name}</span><Icon n="chev" /></Link>
+          <span className="nav">
+            <Link className="who cal-link" href="/calendar" title="ปฏิทินและขอลา">
+              <svg className="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6.5h16V20H4zM4 11h16M8.5 3.5v5M15.5 3.5v5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>ปฏิทิน
+            </Link>
+            <Link className="who" href="/profile" title="โปรไฟล์ของฉัน"><span id="whoName">{user.name}</span><Icon n="chev" /></Link>
+          </span>
         </header>
 
         <p className="net" id="net" role="status" hidden={!net}>

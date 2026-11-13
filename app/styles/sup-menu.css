@@ -1,0 +1,4 @@
+/* The count of waiting leave requests on the menu item (Shell). It sits on the icon, so it shows when the menu is narrowed to icons. Scope: .s-sup. */
+.s-sup .mitem { position: relative; }
+.s-sup .mbadge { position: absolute; top: .125rem; left: 1.75rem; display: grid; place-items: center; min-width: 1.375rem; height: 1.375rem; padding: 0 .25rem; background: var(--ink); border: 2px solid #fff; border-radius: 2rem; color: #fff; font: 700 1rem/1 var(--kanit); font-variant-numeric: tabular-nums; }
+.s-sup a.mitem[aria-current="page"] .mbadge { background: #fff; border-color: var(--ink); color: var(--ink); }

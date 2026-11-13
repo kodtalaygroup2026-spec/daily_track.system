@@ -1,0 +1,87 @@
+/* The technician calendar page and the "ปฏิทิน" link on /today. Scope: .s-tech; tokens come from tech.css */
+
+/* header with two links stays one row: the brand wraps inside its own space and the name is cut with an ellipsis */
+.s-tech .bar { gap: .5rem; }
+.s-tech .bar .brand { min-width: 0; overflow-wrap: anywhere; }
+.s-tech .nav { display: flex; gap: .5rem; min-width: 0; margin-left: auto; }
+.s-tech .nav .who { min-width: 0; }
+.s-tech #whoName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.s-tech .who.cal-link, .s-tech .who.back { padding: 0 .875rem; gap: .375rem; }
+.s-tech .who.cal-link .ic, .s-tech .who.back .ic { width: 1.25rem; height: 1.25rem; }
+
+.s-tech .pri {
+  display: flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; min-height: 3.5rem; margin-top: 1rem; padding: 0 1.25rem;
+  background: var(--ink); color: #fff; border: 2px solid var(--ink); border-radius: 12px; font: 700 1.0625rem var(--kanit); cursor: pointer;
+}
+.s-tech .pri:active { background: #000; }
+.s-tech .tb {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-width: 3.5rem; min-height: 3.5rem; padding: 0 1rem;
+  background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 12px; font: 600 1rem var(--kanit); cursor: pointer;
+}
+.s-tech .tb:active { background: #DADEDC; }
+.s-tech .tb.wide { width: 100%; margin-top: .5rem; }
+
+/* month title and its buttons */
+.s-tech .mnav { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem; align-items: center; gap: .5rem; margin-top: 1.25rem; }
+.s-tech .mnav h2 { font: 700 1.5rem/1.25 var(--kanit); text-align: center; }
+.s-tech .mnav .tb { padding: 0; }
+
+/* the month: 7 columns on a 30rem column, so a cell is narrow; its words may wrap but never overflow */
+.s-tech .wk, .s-tech .mg { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .125rem; }
+.s-tech .wk { margin-top: 1rem; text-align: center; font: 700 1rem var(--kanit); }
+.s-tech .mg { margin-top: .25rem; }
+.s-tech .dc {
+  display: flex; flex-direction: column; align-items: center; gap: .125rem; min-width: 0; min-height: 5rem; padding: .25rem .125rem;
+  background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 10px;
+  font: 500 .9375rem/1.15 'Noto Sans Thai', system-ui, sans-serif; text-align: center; overflow-wrap: anywhere; cursor: pointer;
+}
+.s-tech .dc .dn { display: inline-flex; align-items: center; gap: .125rem; font: 700 1.0625rem var(--kanit); font-variant-numeric: tabular-nums; }
+.s-tech .dc .dn .ic { width: 1rem; height: 1rem; }
+.s-tech .dc .w { font-weight: 700; }
+/* day off: dashed and quiet; leave: solid with its own icon; work: solid, white. Each also has its own word and icon */
+.s-tech .dc[data-k="off"] { background: transparent; border-style: dashed; color: var(--quiet); }
+.s-tech .dc[data-k="leave"] { background: var(--ground); }
+.s-tech .dc.out { color: var(--quiet); }
+.s-tech .dc.now { border-width: 4px; padding: .125rem 0; }
+.s-tech .dc[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.s-tech .dc:focus-visible { outline-offset: 2px; }
+/* today's thick border is ink on ink once it is selected: an inset white ring keeps it recognisable */
+.s-tech .dc.now[aria-pressed="true"]:not(:focus-visible) { outline: 2px solid #fff; outline-offset: -6px; }
+
+.s-tech .dd {
+  display: grid; gap: .5rem; justify-items: start; margin-top: 1rem; padding: 1rem 1.25rem;
+  background: #fff; border: 2px solid var(--ink); border-radius: var(--radius); font-size: 1.0625rem;
+}
+.s-tech .dd h2, .s-tech .lvs h2 { font: 700 1.5rem/1.25 var(--kanit); }
+.s-tech .dd p { overflow-wrap: anywhere; }
+.s-tech .dd .pri { margin-top: .25rem; }
+.s-tech .stw { display: inline-flex; align-items: center; gap: .375rem; font: 700 1.0625rem var(--kanit); }
+.s-tech .quiet { color: var(--quiet); }
+
+/* my requests */
+.s-tech .lvs { margin-top: 1.5rem; }
+.s-tech .lvs h2 { overflow-wrap: anywhere; }
+.s-tech .lvs ul { list-style: none; margin: .75rem 0 0; padding: 0; display: grid; gap: .75rem; }
+.s-tech .lvs > p { margin-top: .5rem; }
+.s-tech .lv { display: grid; gap: .5rem; justify-items: start; padding: 1rem 1.25rem; background: #fff; border: 2px solid var(--ink); border-radius: var(--radius); font-size: 1.0625rem; }
+.s-tech .lv p { overflow-wrap: anywhere; }
+.s-tech .lv .rg { font: 700 1.0625rem var(--kanit); }
+.s-tech .chip.ok { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
+.s-tech .chip.no { border-style: dashed; }
+
+/* the request box and the cancel box are the same native modal dialog as the finish box */
+.s-tech dialog.leave { max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.s-tech .fld { display: grid; gap: .375rem; }
+.s-tech .fld label { font: 700 1rem var(--kanit); }
+.s-tech .cf-body input {
+  width: 100%; min-height: 3.5rem; padding: 0 1rem; background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 12px;
+  font: 500 1.0625rem 'Noto Sans Thai', system-ui, sans-serif;
+}
+.s-tech .cf-body input[aria-invalid="true"] { border-width: 4px; }
+/* errors are ink with a warning icon: red is kept for task status */
+.s-tech .err { display: flex; align-items: flex-start; gap: .375rem; font-weight: 700; overflow-wrap: anywhere; }
+.s-tech .err .ic { margin-top: .125rem; width: 1.25rem; height: 1.25rem; }
+.s-tech .picks { display: flex; flex-wrap: wrap; gap: .5rem; }
+.s-tech .cf-body .picks button { width: auto; flex: none; background: #fff; font-weight: 600; }
+.s-tech .cf-body .picks button:active { background: #DADEDC; }
+.s-tech .cf-body button[aria-disabled="true"] { cursor: progress; background: var(--quiet); color: #fff; }

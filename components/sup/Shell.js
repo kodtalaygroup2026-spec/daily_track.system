@@ -5,8 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { logout } from '@/lib/auth';
+import { pendingLeaveCount } from '@/lib/api';
 import { hhmm, nowMins } from '@/lib/dates';
 import { Icon, Sprite } from './ui';
+import '@/app/styles/sup-menu.css'; // the day page loads sup.css only, so the menu badge has its own sheet
 
 const MENU_KEY = 'dailytrack.menu.v1';
 const isDocked = () => window.innerWidth >= 1280;
@@ -17,6 +19,7 @@ export default function Shell({ user, active, actions, overlay, children }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [clock, setClock] = useState(() => hhmm(nowMins()));
+  const [pending, setPending] = useState(0);
   const menuRef = useRef(null);
   const menuBtn = useRef(null);
   const wasDocked = useRef(false);
@@ -36,6 +39,24 @@ export default function Shell({ user, active, actions, overlay, children }) {
     window.addEventListener('resize', onResize);
     const iv = setInterval(() => setClock(hhmm(nowMins())), 15000);
     return () => { window.removeEventListener('resize', onResize); clearInterval(iv); };
+  }, []);
+
+  // leave requests waiting for an answer: asked on mount, every minute while the page is visible, and when the roster page says it changed
+  useEffect(() => {
+    let alive = true;
+    let n = 0;
+    const poll = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const k = ++n;
+      let c;
+      try { c = await pendingLeaveCount(); } catch (e) { return; } // keep the last count shown
+      if (alive && k === n) setPending(c);
+    };
+    poll();
+    const iv = setInterval(poll, 60000);
+    document.addEventListener('visibilitychange', poll);
+    window.addEventListener('dt:leaves', poll);
+    return () => { alive = false; clearInterval(iv); document.removeEventListener('visibilitychange', poll); window.removeEventListener('dt:leaves', poll); };
   }, []);
 
   useEffect(() => { // a panel over the page takes focus; a docked menu leaves it on the button
@@ -74,7 +95,13 @@ export default function Shell({ user, active, actions, overlay, children }) {
           <ul>
             <li><Link href="/supervisor" className="mitem" aria-current={here('day')}><Icon n="list" /><span className="mtxt">ภารกิจรายวัน</span></Link></li>
             <li><Link href="/supervisor/routines" className="mitem" aria-current={here('routines')}><Icon n="repeat" /><span className="mtxt">งานประจำ</span></Link></li>
-            <li><Link href="/supervisor/roster" className="mitem" aria-current={here('roster')}><Icon n="week" /><span className="mtxt">ตารางช่างประจำสัปดาห์</span></Link></li>
+            <li>
+              <Link href="/supervisor/roster" className="mitem" aria-current={here('roster')}
+                aria-label={pending > 0 ? `ตารางช่างประจำสัปดาห์ มีคำขอลารออนุมัติ ${pending} รายการ` : undefined}>
+                <Icon n="week" /><span className="mtxt">ตารางช่างประจำสัปดาห์</span>
+                {pending > 0 && <span className="mbadge" aria-hidden="true">{pending}</span>}
+              </Link>
+            </li>
             <li><span className="mitem soon" aria-disabled="true"><Icon n="doc" /><span className="mtxt">รายงานประจำวัน<small>เร็วๆ นี้</small></span></span></li>
           </ul>
           <p className="mgroup"><span>ตั้งค่า</span></p>
