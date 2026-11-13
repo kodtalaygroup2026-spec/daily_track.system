@@ -1,0 +1,65 @@
+/* Shared photo viewer (technician and supervisor). Not scoped under .s-tech/.s-sup: it owns its colours.
+   Flat enamel look on ink: white lines, no shadows. Yellow, red and green stay reserved for task status. */
+dialog.pv {
+  inset: 0; width: 100%; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; overflow: hidden;
+  background: #14181B; color: #fff; font: 500 1rem/1.4 'Noto Sans Thai', system-ui, sans-serif;
+}
+dialog.pv[open] { display: flex; flex-direction: column; }
+dialog.pv::backdrop { background: #14181B; }
+.pv * { box-sizing: border-box; }
+.pv h2, .pv p { margin: 0; }
+
+.pv-head { display: flex; align-items: flex-start; gap: 1rem; padding: .75rem 1rem; border-bottom: 2px solid #fff; }
+.pv-ttl { flex: 1; min-width: 0; align-self: center; overflow-wrap: anywhere; }
+.pv-ttl h2 { font: 700 1.25rem/1.25 'Kanit', 'Noto Sans Thai', sans-serif; }
+.pv-ttl p { margin-top: .125rem; }
+
+/* dialog.pv prefix: the host pages' `.s-tech button` / `.s-sup :focus-visible` rules would otherwise win */
+dialog.pv .pv-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem; flex: none;
+  min-width: 3.5rem; min-height: 3.5rem; padding: 0 .75rem;
+  background: transparent; color: #fff; border: 2px solid #fff; border-radius: 12px;
+  font: 700 1.0625rem 'Kanit', 'Noto Sans Thai', sans-serif; cursor: pointer;
+}
+dialog.pv .pv-btn:hover, dialog.pv .pv-btn:active { background: rgba(255, 255, 255, .16); }
+dialog.pv .pv-btn[aria-pressed="true"] { background: #fff; color: #14181B; }
+dialog.pv .pv-btn[aria-disabled="true"] { opacity: .4; cursor: default; }
+dialog.pv .pv-btn:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
+.pv-ic { width: 1.25rem; height: 1.25rem; flex: none; }
+
+.pv-seg, .pv-bar { display: grid; gap: .75rem; padding: .75rem 1rem; }
+.pv-seg { grid-auto-flow: column; grid-auto-columns: 1fr; padding-bottom: .25rem; }
+.pv-bar { grid-template-columns: repeat(3, 1fr); padding-bottom: calc(.75rem + env(safe-area-inset-bottom)); border-top: 2px solid #fff; }
+.pv-seg, .pv-bar > .pv-btn { width: 100%; }
+
+.pv-stage { position: relative; flex: 1 1 0; min-height: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.pv-stage[data-live] { cursor: grabbing; }
+.pv-img { display: block; width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 50%; will-change: transform; -webkit-user-drag: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .pv-img { transition: transform .18s ease-out; }
+  .pv-stage[data-live] .pv-img { transition: none; }
+}
+.pv-pct {
+  position: absolute; top: .75rem; left: .75rem; padding: .25rem .75rem; pointer-events: none;
+  background: #14181B; border: 2px solid #fff; border-radius: 2rem;
+  font: 700 1.0625rem 'Kanit', 'Noto Sans Thai', sans-serif; font-variant-numeric: tabular-nums;
+}
+.pv-note {
+  position: absolute; inset: 1rem; display: grid; place-items: center; padding: 1rem; text-align: center; cursor: default;
+  border: 3px dashed #fff; border-radius: 12px; font: 700 1.25rem 'Kanit', 'Noto Sans Thai', sans-serif;
+}
+.pv-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* a wide screen: keep the controls a thumb-sized cluster in the middle instead of three stretched bars */
+@media (min-width: 48rem) {
+  .pv-seg, .pv-bar { width: min(100%, 36rem); margin-inline: auto; }
+}
+/* a phone on its side has no height to spare: the controls move beside the picture (two columns: three zoom buttons stacked would be taller than the screen) */
+@media (orientation: landscape) and (max-height: 32rem) {
+  dialog.pv[open] { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; grid-template-rows: auto auto 1fr; }
+  .pv-head { grid-column: 1 / -1; }
+  .pv-ttl p { display: none; }
+  .pv-stage { grid-column: 1; grid-row: 2 / 4; }
+  .pv-seg { grid-column: 2; grid-row: 2; width: auto; padding-bottom: .75rem; }
+  .pv-bar { grid-column: 2; grid-row: 3; grid-template-columns: 1fr 1fr; align-content: start; width: auto; border-top: 0; padding-bottom: .75rem; }
+}

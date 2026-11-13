@@ -1,15 +1,17 @@
 'use client';
-import { useEffect, useReducer, useRef } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import Link from 'next/link';
 import { th, toDate } from '@/lib/dates';
 import { branchLabel } from '@/lib/branches';
 import '@/app/styles/tech-calendar.css';
 import { createDay } from './day';
+import PhotoViewer from '@/components/PhotoViewer';
 import TaskBox, { Icon, Sprite } from './TaskBox';
 
 export default function TechDay({ user }) {
   const [, redraw] = useReducer((n) => n + 1, 0);
   const ref = useRef(null);
+  const [view, setView] = useState(null); // { id, kind }: the photo open in the viewer
   if (!ref.current) ref.current = createDay(redraw);
   const d = ref.current;
 
@@ -17,6 +19,8 @@ export default function TechDay({ user }) {
   useEffect(() => { d.afterCommit(); });
 
   const { tasks, toast } = d;
+  const vt = view && tasks.find((t) => t.id === view.id);
+  useEffect(() => { if (view && !vt) setView(null); }); // the task is gone from the day: the viewer goes with it
   const done = tasks.filter((t) => t.status === 'done').length;
   const doing = tasks.some((t) => t.status === 'doing');
   const todo = tasks.some((t) => t.status === 'todo');
@@ -75,12 +79,15 @@ export default function TechDay({ user }) {
             ) : (
               <>
                 {done === tasks.length && <li className="alldone"><h2>{`เสร็จครบทั้ง ${tasks.length} งาน`}</h2></li>}
-                {tasks.map((t) => <TaskBox key={t.id} t={t} rev={d.rev[t.id] || 0} from={d.from[t.id]} />)}
+                {tasks.map((t) => <TaskBox key={t.id} t={t} rev={d.rev[t.id] || 0} from={d.from[t.id]} onZoom={(id, kind) => setView({ id, kind })} />)}
               </>
             )}
           </ul>
         )}
       </div>
+
+      {vt && <PhotoViewer title={vt.title} subtitle={`${vt.place} · ${vt.time}`} index={view.kind === 'after' ? 1 : 0} onClose={() => setView(null)}
+        photos={['before', 'after'].map((k) => ({ key: k, label: (k === 'before' ? 'ก่อนเริ่ม' : 'หลังเสร็จ') + (vt[k + 'At'] ? ' · ' + vt[k + 'At'] : ''), src: vt[k], alt: `รูป${k === 'before' ? 'ก่อนเริ่ม' : 'หลังเสร็จ'} ${vt.title}`, note: 'ยังไม่ได้ถ่าย' }))} />}
 
       <input type="file" id="file" accept="image/*" capture="environment" hidden ref={d.fileRef} onChange={d.onChange} />
 

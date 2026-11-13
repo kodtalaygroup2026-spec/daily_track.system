@@ -13,6 +13,7 @@ export function Sprite() {
       <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3.5 8.5h3l1.5-2.5h8l1.5 2.5h3v10.5h-17z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" /><circle cx="12" cy="13.5" r="3.5" fill="none" stroke="currentColor" strokeWidth="2.4" /></symbol>
       <symbol id="i-offline" viewBox="0 0 24 24"><path d="M3 9a14 14 0 0 1 4-2.4M21 9a14 14 0 0 0-8-3.9M6.5 12.8a9 9 0 0 1 3-1.8M17.5 12.8a9 9 0 0 0-1.6-1.2M10 16.5a4 4 0 0 1 4 0M4 4l16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /><circle cx="12" cy="19" r="1.4" fill="currentColor" /></symbol>
       <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M4 11V9a3 3 0 0 1 3-3h11M15 3l3 3-3 3M20 13v2a3 3 0 0 1-3 3H6M9 21l-3-3 3-3" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></symbol>
+      <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" strokeWidth="3" /><path d="M15 15l5.5 5.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></symbol>
       <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4v13M3.5 13.5L7 17l3.5-3.5M17 20V7M13.5 10.5L17 7l3.5 3.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></symbol>
     </svg>
   );
@@ -41,8 +42,17 @@ function Items({ t }) {
   );
 }
 
+// the photo as a button that opens the viewer; the badge says it can be enlarged
+function Zoom({ t, kind, onZoom }) {
+  return (
+    <button type="button" className="zoom" aria-label={`ดูรูป${kind === 'before' ? 'ก่อนเริ่ม' : 'หลังเสร็จ'}ของ ${t.title} ขยาย`} onClick={() => onZoom(t.id, kind)}>
+      <img className="shot" src={t[kind]} alt="" /><span className="mag" aria-hidden="true"><Icon n="zoom" /></span>
+    </button>
+  );
+}
+
 // from: the status the box just left (drives the unwipe animation); rev changes on every status change so the box remounts
-export default function TaskBox({ t, from, rev }) {
+export default function TaskBox({ t, from, rev, onZoom }) {
   const meta = <p className="meta">{`${t.time} · ${t.place}`}</p>;
   // a routine task, and a task given to someone covering for the regular technician
   const chips = (t.routine || t.coverFor) && (
@@ -75,7 +85,7 @@ export default function TaskBox({ t, from, rev }) {
     // no before photo (its link could not be loaded): repair it here, and the finish track stays out of the way
     const body = t.before ? (
       <>
-        <div className="tools"><img className="shot" src={t.before} alt={`รูปก่อนเริ่ม ${t.title}`} /><button type="button" className="photo" data-photo={t.id}><Icon n="camera" />ถ่ายรูปก่อนใหม่</button></div>
+        <div className="tools"><Zoom t={t} kind="before" onZoom={onZoom} /><button type="button" className="photo" data-photo={t.id}><Icon n="camera" />ถ่ายรูปก่อนใหม่</button></div>
         {items}
         <div className="fin" aria-live="polite">{fin}</div>
       </>
@@ -94,6 +104,12 @@ export default function TaskBox({ t, from, rev }) {
   }
   return (
     <li><article key={rev} className="box" data-state="done" data-from={from}>{label(<Icon n="check" />)}
-      <h2>{t.title}</h2>{meta}{chips}{clock}{items}{t.before && t.after && <span className="cue"><Icon n="camera" />รูปก่อน-หลังครบ</span>}</article></li>
+      <h2>{t.title}</h2>{meta}{chips}{clock}{items}{(t.before || t.after) && (
+        <div className="pics">
+          {[['before', 'ก่อน'], ['after', 'หลัง']].filter(([k]) => t[k]).map(([k, w]) => (
+            <span key={k} className="pic"><Zoom t={t} kind={k} onZoom={onZoom} /><span className="cap">{w}<br />{t[k + 'At']}</span></span>
+          ))}
+        </div>
+      )}{t.before && t.after && <span className="cue"><Icon n="camera" />รูปก่อน-หลังครบ</span>}</article></li>
   );
 }

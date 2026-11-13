@@ -34,7 +34,7 @@ export default function SupDay({ user }) {
   const [ui, setUi] = useState(FRESH);
   const [live, setLive] = useState('');
   const [toastState, setToastState] = useState({ text: '', show: false });
-  const [lb, setLb] = useState(null); // task id shown in the lightbox
+  const [lb, setLb] = useState(null); // { id, kind }: the task and the photo shown in the viewer
   const [, redraw] = useReducer((n) => n + 1, 0);
 
   const drawerRef = useRef(null);
@@ -136,7 +136,7 @@ export default function SupDay({ user }) {
     return pool.filter(test(filter)).sort((a, b) => cmp(a, b) * dir);
   })();
   const selTask = data.tasks.find((x) => x.id === ui.sel);
-  const lbTask = lb != null && data.tasks.find((x) => x.id === lb);
+  const lbTask = lb && data.tasks.find((x) => x.id === lb.id);
   const techOptions = [{ value: '', label: 'ช่างทุกคน' }, ...techs.filter((p) => inBranch(p, ui.branch)).map((p) => ({ value: p.id, label: p.name }))];
   const techName = (id) => (techs.find((p) => p.id === id) || { name: '' }).name;
 
@@ -240,13 +240,13 @@ export default function SupDay({ user }) {
     const s = slot(t, k);
     if (s === 'ok') {
       return (
-        <button type="button" className="shot" aria-label={`ดูรูป${NAMES[k]}ของ ${t.title}`} onClick={(e) => { e.stopPropagation(); setLb(t.id); }}>
+        <button type="button" className="shot" aria-label={`ดูรูป${NAMES[k]}ของ ${t.title}`} onClick={(e) => { e.stopPropagation(); setLb({ id: t.id, kind: k }); }}>
           <img src={t[k]} alt="" />
         </button>
       );
     }
     if (s === 'miss') {
-      return <button type="button" className="slot miss" aria-label={`รอรูป${NAMES[k]}ของ ${t.title}`} onClick={(e) => { e.stopPropagation(); setLb(t.id); }}>รอรูป</button>;
+      return <button type="button" className="slot miss" aria-label={`รอรูป${NAMES[k]}ของ ${t.title}`} onClick={(e) => { e.stopPropagation(); setLb({ id: t.id, kind: k }); }}>รอรูป</button>;
     }
     return <span className="slot due"><span className="sr">ยังไม่ถึงขั้นตอนถ่ายรูป{NAMES[k]}</span>—</span>;
   };
@@ -256,10 +256,10 @@ export default function SupDay({ user }) {
       {/* outside .page, which is made inert while the box is open */}
       {ui.mode && (ui.mode === 'create' || selTask) && (
         <Drawer key={`${ui.mode}:${ui.sel}:${ui.rev}`} ref={drawerRef} mode={ui.mode} task={selTask} date={date} branch={ui.branch}
-          techs={techs} absent={absent} onSave={save} onClose={closeDrawer} onShot={setLb} />
+          techs={techs} absent={absent} onSave={save} onClose={closeDrawer} onShot={(id, kind) => setLb({ id, kind })} />
       )}
 
-      {lbTask && <Lightbox task={lbTask} onClose={() => setLb(null)} />}
+      {lbTask && <Lightbox task={lbTask} kind={lb.kind} onClose={() => setLb(null)} />}
 
       <div className={'toast' + (toastState.show ? ' show' : '')} id="toast" role="status" aria-live="polite">{toastState.text}</div>
 

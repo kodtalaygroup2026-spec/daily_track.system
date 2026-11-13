@@ -139,7 +139,7 @@ const Drawer = forwardRef(function Drawer({ mode, task: t, date, branch, techs, 
       <div>
         <span className="lab">{NAMES[k]}{t[k + 'At'] ? ' · ' + t[k + 'At'] : ''}</span>
         {s === 'ok'
-          ? <button type="button" aria-label={`ดูรูป${NAMES[k]}ใหญ่ของ ${t.title}`} onClick={() => onShot(t.id)}><img src={t[k]} alt={`รูป${NAMES[k]} ${t.title}`} /></button>
+          ? <button type="button" aria-label={`ดูรูป${NAMES[k]}ใหญ่ของ ${t.title}`} onClick={() => onShot(t.id, k)}><img src={t[k]} alt={`รูป${NAMES[k]} ${t.title}`} /></button>
           : <div className={'noimg' + (s === 'miss' ? ' miss' : '')}>{emptyText(t, k)}</div>}
       </div>
     );
@@ -233,7 +233,7 @@ const Drawer = forwardRef(function Drawer({ mode, task: t, date, branch, techs, 
             {!create && (
               <div className="photo">
                 <div className="pair2">{fig('before')}{fig('after')}</div>
-                {(t.before || t.after) && <small>แตะรูปเพื่อดูรูปก่อนและหลังคู่กัน</small>}
+                {(t.before || t.after) && <small>แตะรูปเพื่อดูภาพใหญ่และซูม</small>}
               </div>
             )}
             {locked && <p className="lock">งานเสร็จแล้ว แก้ไขไม่ได้</p>}

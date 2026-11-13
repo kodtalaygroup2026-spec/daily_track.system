@@ -1,27 +1,16 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import PhotoViewer from '@/components/PhotoViewer';
 import { NAMES, emptyText, slot } from './ui';
 
-// mounted only while open; the native dialog supplies the modal focus trap and Escape
-export default function Lightbox({ task: t, onClose }) {
-  const dlg = useRef(null);
-  useEffect(() => { if (!dlg.current.open) dlg.current.showModal(); }, []);
-  const fig = (k) => {
-    const s = slot(t, k);
-    return (
-      <figure>
-        <figcaption>{NAMES[k]}{t[k + 'At'] ? ' · ' + t[k + 'At'] : ''}</figcaption>
-        {s === 'ok'
-          ? <img src={t[k]} alt={`รูป${NAMES[k]} ${t.title}`} />
-          : <div className={'noimg' + (s === 'miss' ? ' miss' : '')}>{emptyText(t, k)}</div>}
-      </figure>
-    );
-  };
-  return (
-    <dialog id="lightbox" ref={dlg} aria-labelledby="lbCap" onClose={onClose}>
-      <p id="lbCap">{`รูป · ${t.title} · ${t.tech || 'ยังไม่มีคนทำ'}`}</p>
-      <div id="lbBody"><div className="pair-lb">{fig('before')}{fig('after')}</div></div>
-      <button type="button" id="lbClose" className="primary" onClick={() => dlg.current.close()}>ปิด</button>
-    </dialog>
-  );
+// kind: the photo that was clicked, so the viewer opens on it
+export default function Lightbox({ task: t, kind = 'before', onClose }) {
+  const photos = ['before', 'after'].map((k) => ({
+    key: k,
+    label: NAMES[k] + (t[k + 'At'] ? ' · ' + t[k + 'At'] : ''),
+    src: slot(t, k) === 'ok' ? t[k] : null,
+    alt: `รูป${NAMES[k]} ${t.title}`,
+    note: emptyText(t, k),
+  }));
+  const subtitle = [t.tech || 'ยังไม่มีคนทำ', t.beforeAt && `เริ่ม ${t.beforeAt}`, t.status === 'done' && t.afterAt && `เสร็จ ${t.afterAt}`].filter(Boolean).join(' · ');
+  return <PhotoViewer photos={photos} index={kind === 'after' ? 1 : 0} title={t.title} subtitle={subtitle} onClose={onClose} />;
 }
