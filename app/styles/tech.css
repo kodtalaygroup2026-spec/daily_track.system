@@ -130,14 +130,20 @@
 .s-tech .shot { width: 3.5rem; height: 3.5rem; object-fit: cover; border-radius: 10px; border: 2px solid var(--ink); }
 
 /* swipe track */
+/* --x is the thumb's travel. Registered as a length so it can be animated itself: the thumb and the green fill are both
+   worked out from it, so they stay on one line while dragging AND while the thumb eases back (animating each on its own
+   let the arrow run ahead of the green). Without @property support they simply jump back instead of easing. */
+@property --x { syntax: '<length>'; inherits: true; initial-value: 0px; }
 .s-tech .track {
   --x: 0px;
   position: relative; height: 4rem; margin-top: .875rem;
   background: var(--ink); border-radius: 2rem; overflow: hidden;
   touch-action: pan-y; user-select: none;
+  transition: --x .25s var(--ease);
 }
-.s-tech .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--green); border-radius: 2rem; transition: width .25s var(--ease); }
-.s-tech .track.drag .fill { width: calc(var(--x) + 2.25rem); }
+.s-tech .track.drag { transition: none; }
+/* the green ends in a round cap centred on the thumb (thumb right edge + the .25rem rim); none at rest, full cap from the first pixels of travel */
+.s-tech .fill { position: absolute; inset: 0 auto 0 0; width: calc(var(--x) + min(var(--x) * 40, 4rem)); background: var(--green); border-radius: 2rem; }
 .s-tech .track .lbl {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   padding-left: 3.5rem; pointer-events: none;
@@ -147,10 +153,9 @@
   position: absolute; left: .25rem; top: .25rem; width: 3.5rem; height: 3.5rem;
   display: grid; place-items: center;
   background: var(--yellow); color: var(--ink); border: 0; border-radius: 50%;
-  transform: translateX(var(--x)); transition: transform .25s var(--ease);
+  transform: translateX(var(--x));
   touch-action: none; cursor: grab;
 }
-.s-tech .track.drag .thumb, .s-tech .track.drag .fill { transition: none; }
 .s-tech .thumb:focus-visible { outline: 3px solid #fff; outline-offset: 0; }
 .s-tech .thumb.nudge { animation: nudge .6s var(--ease); }
 @keyframes nudge { 40% { transform: translateX(1.5rem); } }
