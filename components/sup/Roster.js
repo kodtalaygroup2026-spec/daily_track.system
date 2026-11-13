@@ -8,7 +8,7 @@ import Dropdown from '@/components/Dropdown';
 import DateField from '@/components/DateField';
 import { MAX_DAY, MIN_DAY, addDays, dayNum, dur, isoOf, th, toDate, today } from '@/lib/dates';
 import { BRANCHES, branchLabel } from '@/lib/branches';
-import { assignCover, decideLeave, errText, getRoster, listLeaves, setAbsent, setRoster, setRotation, setStaff, supDay, updateTask } from '@/lib/api';
+import { assignCover, decideLeave, errText, getRoster, listLeaves, setAbsent, setDayOverride, setRoster, setRotation, setStaff, supDay, updateTask } from '@/lib/api';
 import { ROTATIONS, WEEKDAYS, dowOf, needsCover, onRoster, techWorks, weekOf } from '@/lib/roster';
 import Shell from './Shell';
 import { Failed, Modal, useToast } from './Routines';
@@ -19,10 +19,16 @@ const LV = { approved: ['check', 'อนุมัติแล้ว'], rejected:
 const MON_SAT = [1, 2, 3, 4, 5, 6];
 const GONE = ['decided', 'not_found']; // the request is no longer waiting: reload, do not retry
 const ST = { works: ['check', 'ทำงาน'], off: ['', 'หยุดประจำ'], absent: ['close', 'ไม่อยู่'] };
+const AHEAD = 90; // the date strip looks this many days ahead
 const dash = <span aria-hidden="true">–</span>;
 const longDay = (iso, o) => th(toDate(iso), { weekday: 'long', day: 'numeric', month: 'long', ...o });
+const dm = (iso) => th(toDate(iso), { day: 'numeric', month: 'short' });
 
 const stateOf = (d, tech, iso) => (d.absent.some((a) => a.techId === tech.id && a.day === iso) ? 'absent' : onRoster(tech, iso) ? 'works' : 'off');
+const picked = (tech, iso) => !!tech.overrides && iso in tech.overrides; // chosen by hand
+// a hand-chosen off day is just "หยุด": it is not the pattern's day off
+const stLabel = (st, pick) => (st === 'off' && pick ? 'หยุด' : ST[st][1]);
+const Mark = () => <span className="rs-mark"><Icon n="pencil" />เลือกเอง</span>;
 
 // "13 พ.ย. 2569" / "13–15 พ.ย. 2569 · 3 วัน" / "30 พ.ย. – 2 ธ.ค. 2569 · 3 วัน"
 function leaveText({ from, to }) {
@@ -67,6 +73,71 @@ function Tabs({ tab, onTab, pending }) {
 }
 
 /* ---- tab: the weekly pattern or a rotation ---- */
+// The next dates of one technician, each a button: one press picks the opposite of what the date is now (by hand, beating the
+// pattern), a press on a hand-chosen date puts it back on the pattern. cur is the pattern shown (the rotation draft counts).
+function Picker({ t, cur, dirty, save, err, setErr }) {
+  const [off, setOff] = useState(0);
+  const [clearing, setClearing] = useState(false);
+  const ov = t.overrides || {};
+  const eff = { ...t, rotation: cur };
+  const days = Array.from({ length: Math.min(14, AHEAD + 1 - off) }, (_, i) => addDays(today(), off + i));
+  const mine = days.filter((d) => d in ov);
+  const head = off === 0 ? '14 วันข้างหน้า' : `${dm(days[0])} – ${dm(days[days.length - 1])}`;
+
+  function choose(d) {
+    const next = d in ov ? null : !onRoster(eff, d);
+    const o = { ...ov };
+    if (next === null) delete o[d]; else o[d] = next;
+    setErr('');
+    save(t, { overrides: o }, () => setDayOverride(t.id, d, next),
+      `${t.name} ${dm(d)}: ${next === null ? 'กลับไปตามตาราง' : next ? 'ทำงาน (เลือกเอง)' : 'หยุด (เลือกเอง)'}`, setErr);
+  }
+  async function clear() {
+    if (clearing || !mine.length) return;
+    setClearing(true);
+    setErr('');
+    const o = { ...ov };
+    mine.forEach((d) => delete o[d]);
+    await save(t, { overrides: o }, async () => { for (const d of mine) await setDayOverride(t.id, d, null); },
+      `${t.name}: ล้างที่เลือกเอง ${mine.length} วัน กลับไปตามตาราง`, setErr);
+    setClearing(false);
+  }
+
+  return (
+    <div className="rs-prev">
+      <div className="rs-pvbar">
+        <p className="rs-lab" aria-live="polite">{head}</p>
+        <button type="button" className="rs-chip" aria-label={`ก่อนหน้า ของ ${t.name}`} aria-disabled={off === 0} onClick={() => { if (off > 0) setOff(off - 14); }}><Icon n="left" />ก่อนหน้า</button>
+        <button type="button" className="rs-chip" aria-label={`ดูวันถัดไป ของ ${t.name}`} aria-disabled={off + 14 > AHEAD} onClick={() => { if (off + 14 <= AHEAD) setOff(off + 14); }}>ดูวันถัดไป<Icon n="right" /></button>
+      </div>
+      <ul className="rs-pv" aria-label={`${head} ของ ${t.name}`}>
+        {days.map((d) => {
+          const on = onRoster(eff, d);
+          const pick = d in ov;
+          return (
+            <li key={d}>
+              <button type="button" className="rs-day" aria-pressed={on} data-mine={pick ? '' : undefined}
+                aria-label={`${t.name} ${WEEKDAYS.find((w) => w.dow === dowOf(d)).long} ${dm(d)} ${on ? 'ทำงาน' : 'หยุด'}${pick ? ' เลือกเอง · กดเพื่อกลับไปตามตาราง' : ` · กดเพื่อเปลี่ยนเป็น${on ? 'หยุด' : 'ทำงาน'}`}`}
+                onClick={() => choose(d)}>
+                <small aria-hidden="true">{WEEKDAYS.find((w) => w.dow === dowOf(d)).short}</small>
+                <b aria-hidden="true">{toDate(d).getDate()}</b>
+                <span aria-hidden="true">{on ? <Icon n="check" /> : dash}{on ? 'ทำ' : 'หยุด'}</span>
+                {pick && <Mark />}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="rs-pvbar">
+        <p className="rs-hint">กดวันที่เพื่อเลือกทำ/หยุดเอง · กดซ้ำเพื่อกลับไปตามตาราง · การสลับรูปแบบหรือบันทึกรอบไม่ลบวันที่เลือกเอง{dirty ? ' · วันที่ไม่ได้เลือกเอง แสดงตามรอบที่ยังไม่ได้บันทึก' : ''}</p>
+        {/* always rendered: it would vanish under the keyboard focus the moment the clear is shown */}
+        <button type="button" className="rs-chip" aria-label={`ล้างที่เลือกเองของ ${t.name}`} aria-disabled={clearing || !mine.length} onClick={clear}><Icon n="close" />ล้างที่เลือกเอง</button>
+      </div>
+      {err && <p className="err rs-err" role="alert"><Icon n="alert" />{err}</p>}
+    </div>
+  );
+}
+
 // One technician. An unsaved rotation is a draft kept here, so it never leaks to another card; the mode follows from
 // the draft or the saved rotation, so a reload after a failed write puts it right.
 function Card({ t, save, patch }) {
@@ -75,6 +146,7 @@ function Card({ t, save, patch }) {
   const [lastRot, setLastRot] = useState(null); // the rotation the weekly pattern replaced, offered again (unsaved) on the way back
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [pkErr, setPkErr] = useState(''); // the strip's error lives here: the strip remounts when the mode changes
   const cur = draft || t.rotation;
   const dirty = !!draft && !(t.rotation && t.rotation.start === draft.start && t.rotation.mask === draft.mask);
   const works = !!cur && cur.mask.includes('1');
@@ -108,7 +180,9 @@ function Card({ t, save, patch }) {
   const n = cur ? cur.mask.length : 0;
   const resize = (d) => { if (n + d >= 2 && n + d <= 28) edit({ mask: d > 0 ? cur.mask + '1' : cur.mask.slice(0, -1) }); };
   const flip = (i) => edit({ mask: cur.mask.slice(0, i) + (cur.mask[i] === '1' ? '0' : '1') + cur.mask.slice(i + 1) });
-  const next14 = cur ? Array.from({ length: 14 }, (_, i) => addDays(today(), i)) : [];
+  const strip = t.active
+    ? <Picker t={t} cur={cur} dirty={dirty} save={save} err={pkErr} setErr={setPkErr} />
+    : <p className="rs-hint">ช่างคนนี้ไม่ใช้งาน จึงไม่ทำงานเลย เปิดใช้งานก่อนจึงจะเลือกวันทำ/หยุดเองได้</p>;
   const why = `rs-why-${t.id}`;
 
   return (
@@ -159,6 +233,8 @@ function Card({ t, save, patch }) {
         </div>
       )}
 
+      {!cur && strip}
+
       {cur && (
         <div className="rs-rot">
           <div className="rs-presets" role="group" aria-label={`รอบสำเร็จรูปของ ${t.name}`}>
@@ -187,22 +263,7 @@ function Card({ t, save, patch }) {
             <DateField id={`rs-start-${t.id}`} label="เริ่มนับรอบวันที่" value={cur.start} onChange={(v) => edit({ start: v })} min={MIN_DAY} max={MAX_DAY} describedBy={`rs-sh-${t.id}`} />
             <p className="rs-hint" id={`rs-sh-${t.id}`}>วันที่เลือกคือ วัน 1 ของรอบ</p>
           </div>
-          <div className="rs-prev">
-            <p className="rs-lab" id={`pv-${t.id}`}>14 วันข้างหน้า</p>
-            <ul className="rs-pv" aria-labelledby={`pv-${t.id}`}>
-              {next14.map((d) => {
-                const on = onRoster({ ...t, active: true, rotation: cur }, d);
-                return (
-                  <li key={d} data-on={on ? '' : undefined}>
-                    <span className="sr">{longDay(d)}: </span>
-                    <small aria-hidden="true">{WEEKDAYS.find((w) => w.dow === dowOf(d)).short}</small>
-                    <b aria-hidden="true">{toDate(d).getDate()}</b>
-                    <span>{on ? <Icon n="check" /> : dash}{on ? 'ทำ' : 'หยุด'}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          {strip}
           <div className="rs-save">
             <button type="button" className="primary" aria-disabled={!can} aria-describedby={works ? undefined : why} onClick={saveRot}>{busy ? 'กำลังบันทึก…' : 'บันทึกรอบ'}</button>
             <p className="rs-state" data-dirty={dirty ? '' : undefined}>{dirty ? <><Icon n="alert" />ยังไม่ได้บันทึก</> : <><Icon n="check" />บันทึกแล้ว</>}</p>
@@ -215,21 +276,33 @@ function Card({ t, save, patch }) {
   );
 }
 
-function Pattern({ toast }) {
+function Pattern({ toast, show }) {
   const [techs, setTechs] = useState(null);
   const [fail, setFail] = useState('');
-  const load = useCallback(async () => {
-    try { setTechs(await getRoster()); setFail(''); } catch (e) { setFail(errText(e)); }
+  const queue = useRef({ chain: Promise.resolve(), n: 0, failed: false });
+  const seq = useRef(0);
+  const loaded = useRef(false);
+  const load = useCallback(async (quiet) => { // quiet: a failed visit refresh keeps the cards (and their drafts) on screen
+    const n = ++seq.current;
+    try {
+      const r = await getRoster();
+      // an answer older than a later load would undo a newer one; one that crosses a write still waiting is dropped and asked again when the queue empties
+      if (n !== seq.current) return;
+      if (queue.current.n > 0) queue.current.failed = true;
+      else { loaded.current = true; setTechs(r); setFail(''); }
+    } catch (e) { if (n === seq.current && !(quiet === true && loaded.current)) setFail(errText(e)); }
   }, []);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (show) load(true); }, [show, load]); // a date chosen in the week box shows here too
 
   const patch = (id, p) => setTechs((ts) => ts && ts.map((x) => (x.id === id ? { ...x, ...p } : x)));
   // Every tap shows at once and its write is queued behind the earlier ones, so the last tap wins and none is dropped.
   // Each call carries the values the screen showed when it was tapped. After a failed write, reload once the queue is empty.
   // The promise says whether the write worked; a failure goes to the toast, or to inline(text) when the caller shows it by its field.
-  const queue = useRef({ chain: Promise.resolve(), n: 0, failed: false });
   function save(t, p, call, ok, inline) {
     const q = queue.current;
+    seq.current++; // a load asked before this tap would paint the old value over it; one reload runs after the queue empties
+    q.failed = true;
     patch(t.id, p);
     q.n++;
     const run = q.chain.then(async () => {
@@ -319,7 +392,8 @@ function Week({ monday, setMonday, data, fail, onRetry, onOpen, onTab }) {
                       <td key={d.iso}>
                         <button type="button" className="rs-cell" data-st={st} onClick={() => onOpen(x.id, d.iso)}>
                           <span className="sr">{x.name} {longDay(d.iso)}: </span>
-                          <span className="rs-st">{ST[st][0] ? <Icon n={ST[st][0]} /> : dash}{ST[st][1]}</span>
+                          <span className="rs-st">{ST[st][0] ? <Icon n={ST[st][0]} /> : dash}{stLabel(st, picked(x, d.iso))}</span>
+                          {picked(x, d.iso) && st !== 'absent' && <Mark />}
                           {abs && abs.note && <span className="rs-memo">{abs.note}</span>}
                           <span className="rs-n">{n ? `${n} งาน` : 'ไม่มีงาน'}</span>
                           {open > 0 && <span className="rs-need"><Icon n="alert" />รอคนแทน {open}</span>}
@@ -360,6 +434,8 @@ function CellBox({ data, techId, day, onClose, reload, toast }) {
   }
 
   const st = stateOf(data, tech, day);
+  const pick = tech.overrides && tech.overrides[day]; // undefined = on the pattern
+  const byPattern = onRoster({ ...tech, overrides: {} }, day);
   const list = affected(data, tech, day);
   const total = data.tasks.filter((t) => t.date === day && (t.techId === techId || (t.routine && t.ownerId === techId))).length;
   const crew = data.techs.filter((x) => x.id !== techId && techWorks(x, data.absent, day));
@@ -381,8 +457,25 @@ function CellBox({ data, techId, day, onClose, reload, toast }) {
   };
 
   return (
-    <Modal title={`${tech.name} · ${longDay(day, { year: 'numeric' })}`} sub={ST[st][1]} onClose={onClose}>
+    <Modal title={`${tech.name} · ${longDay(day, { year: 'numeric' })}`} sub={stLabel(st, pick !== undefined) + (pick !== undefined && st !== 'absent' ? ' (เลือกเอง)' : '')} onClose={onClose}>
       <div className="tm-body">
+        {tech.active ? (
+          <div className="rs-pk" role="group" aria-labelledby="rs-pk-l">
+            <p className="rs-lab" id="rs-pk-l">เลือกเองเฉพาะวันที่นี้ (ตามตาราง: {byPattern ? 'ทำงาน' : 'หยุด'})</p>
+            <div className="rs-presets">
+              {[[true, 'ให้ทำงาน'], [false, 'ให้หยุด']].map(([v, label]) => (
+                <button type="button" key={label} className="rs-chip" aria-pressed={pick === v} aria-disabled={busy}
+                  onClick={() => { if (pick !== v) act(() => setDayOverride(techId, day, v), `${tech.name}: ${label}วันนั้น (เลือกเอง)`); }}>
+                  {pick === v && <Icon n="check" />}{label}
+                </button>
+              ))}
+              <button type="button" className="rs-chip" aria-disabled={busy || pick === undefined}
+                onClick={() => { if (pick !== undefined) act(() => setDayOverride(techId, day, null), `${tech.name}: กลับไปตามตาราง`); }}>
+                กลับไปตามตาราง
+              </button>
+            </div>
+          </div>
+        ) : <p className="lock">ช่างคนนี้ไม่ใช้งาน จึงไม่ทำงานเลย</p>}
         <button type="button" role="switch" aria-checked={!!abs} className="rs-sw rs-abs" aria-disabled={busy}
           onClick={() => act(() => setAbsent(techId, day, !abs, abs ? '' : note.trim()), abs ? `${tech.name} กลับมาทำงานวันนั้นแล้ว` : `บันทึกว่า ${tech.name} ไม่อยู่แล้ว`)}>
           <i aria-hidden="true" />ไม่อยู่ (ลา/ป่วย)
@@ -661,7 +754,7 @@ export default function Roster({ user }) {
         <div id="rs-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="rs-panel">
           {tab === 'week' && <Week monday={monday} setMonday={(m) => { setMonday(m); setFail(''); }} data={ready} fail={fail} onRetry={load} onTab={pick} onOpen={(techId, day) => setBox({ techId, day })} />}
           {/* kept mounted: an unsaved rotation draft and a write still in flight survive a visit to another tab */}
-          <div className="rs-panel" hidden={tab !== 'pattern'}><Pattern toast={toast} /></div>
+          <div className="rs-panel" hidden={tab !== 'pattern'}><Pattern toast={toast} show={tab === 'pattern'} /></div>
           {tab === 'leaves' && (
             <Leaves list={leaves} fail={lfail} onRetry={loadLeaves} busy={deciding} notice={notice} onWeek={goWeek}
               onApprove={approve} onReject={(l, next) => { if (!deciding) setRej({ l, next }); }} focus={focus} focusKey={focusKey} />
