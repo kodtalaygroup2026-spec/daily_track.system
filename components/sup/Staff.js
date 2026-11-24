@@ -515,7 +515,7 @@ export default function Staff({ user }) {
       <main className="layout plan">
         <header className="pl-head">
           <div>
-            <h1 tabIndex={-1}>พนักงานและรหัสพนักงาน</h1>
+            <h1 tabIndex={-1}>บัญชีผู้ใช้</h1>
             <p className="rel">ดูและจัดการบัญชีเข้าสู่ระบบของช่างและหัวหน้า รหัสพนักงานคือสิ่งที่พิมพ์ตอนเข้าสู่ระบบ</p>
           </div>
         </header>

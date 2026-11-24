@@ -106,7 +106,7 @@ export default function Shell({ user, active, actions, overlay, children }) {
           </ul>
           <p className="mgroup"><span>ตั้งค่า</span></p>
           <ul>
-            <li><Link href="/supervisor/staff" className="mitem" aria-current={here('staff')}><Icon n="users" /><span className="mtxt">พนักงานและรหัสพนักงาน</span></Link></li>
+            <li><Link href="/supervisor/staff" className="mitem" aria-current={here('staff')}><Icon n="users" /><span className="mtxt">บัญชีผู้ใช้</span></Link></li>
           </ul>
           <p className="mgroup"><span>บัญชีของฉัน</span></p>
           <ul>
