@@ -4,10 +4,10 @@ import Link from 'next/link';
 import Dropdown from '@/components/Dropdown';
 import DateField from '@/components/DateField';
 import { listAbsences } from '@/lib/api';
-import { BRANCHES } from '@/lib/branches';
+import { BRANCHES, branchLabel } from '@/lib/branches';
 import { MAX_DAY, MIN_DAY, dur, hhmm, mins, minsSince, nowMins, today } from '@/lib/dates';
 import { COMMON } from '@/lib/presets';
-import { isAbsent, needsCover, techWorks } from '@/lib/roster';
+import { branchOn, isAbsent, needsCover, techWorks } from '@/lib/roster';
 import ItemsEditor from './ItemsEditor';
 import { Icon, LABEL, NAMES, emptyText, fmtLate, lateMins, slot } from './ui';
 
@@ -59,11 +59,6 @@ const Drawer = forwardRef(function Drawer({ mode, task: t, date, branch, techs, 
   const [errs, setErrs] = useState({});
   const [seen, setSeen] = useState(null); // absences of the chosen date, which may lie outside the days the page has loaded
   const set = (k) => (v) => setVals((s) => ({ ...s, [k]: v }));
-  // a technician belongs to one branch: choosing another branch clears a technician who is not in it
-  const setBranch = (v) => setVals((s) => {
-    const p = techs.find((x) => x.id === s.tech);
-    return { ...s, branch: v, tech: v && p && p.branch && p.branch !== v ? '' : s.tech };
-  });
 
   useImperativeHandle(ref, () => ({
     focusTitle: () => root.current.querySelector('h2')?.focus(),
@@ -126,10 +121,12 @@ const Drawer = forwardRef(function Drawer({ mode, task: t, date, branch, techs, 
   // so the supervisor can tell who is in on the chosen date
   const off = (p) => (routine || !vals.date || techWorks(p, gone, vals.date) ? '' : isAbsent(gone, p.id, vals.date) ? ' · ไม่อยู่' : ' · หยุด');
   const branchOpts = (create ? [{ value: '', label: 'เลือกสาขา' }] : []).concat(BRANCHES);
-  // only the chosen branch's technicians (a technician with no branch fits every one); the placeholder shows while none is chosen
-  const techOpts = (create || !vals.tech ? [{ value: '', label: 'เลือกช่าง' }] : []).concat(
-    techs.filter((p) => (p.active || p.id === vals.tech) && (!vals.branch || !p.branch || p.branch === vals.branch)).map((p) => ({ value: p.id, label: p.name + off(p) })),
-  );
+  // technicians at the task's branch on the task's date come first (one with no branch fits every one); the others follow, marked with where they are that day
+  const pickable = techs.filter((p) => p.active || p.id === vals.tech);
+  const here = (p) => { const b = branchOn(p, vals.date); return !vals.branch || !b || b === vals.branch; };
+  const elsewhere = pickable.filter((p) => !here(p));
+  const opt = (p) => ({ value: p.id, label: p.name + (!here(p) ? ' · ' + branchLabel(branchOn(p, vals.date)) : '') + off(p) });
+  const techOpts = (create || !vals.tech ? [{ value: '', label: 'เลือกช่าง' }] : []).concat(pickable.filter(here).map(opt), elsewhere.map(opt));
   const techLabel = routine ? 'ช่างประจำ' : t && t.routine ? 'ช่างผู้ทำ' : 'ช่าง';
   const dateLabel = routine ? 'เริ่มตั้งแต่' : 'วันที่';
   const ticked = t ? t.items.filter((i) => i.done).length : 0;
@@ -184,7 +181,8 @@ const Drawer = forwardRef(function Drawer({ mode, task: t, date, branch, techs, 
             <div className="tm-grid">
               <Field id="f-title" label="ภารกิจ" err={errs.title} wide>
                 <input type="text" id="f-title" name="title" ref={refs.title} value={vals.title} onChange={(e) => set('title')(e.target.value)}
-                  autoComplete="off" disabled={locked} aria-invalid={errs.title ? 'true' : undefined} aria-describedby={inv('title').describedBy} />
+                  maxLength={60} autoComplete="off" disabled={locked} aria-invalid={errs.title ? 'true' : undefined} aria-describedby={inv('title').describedBy} />
+                <p className="hint">ไม่เกิน 60 ตัวอักษร</p>
                 {create && (
                   <div className="quick" role="group" aria-label="ภารกิจที่ใช้บ่อย">
                     {COMMON.map((c) => (
@@ -194,10 +192,11 @@ const Drawer = forwardRef(function Drawer({ mode, task: t, date, branch, techs, 
                 )}
               </Field>
               <Field id="f-branch" label="สาขา" err={errs.branch}>
-                <Dropdown id="f-branch" ref={refs.branch} label="สาขา" value={vals.branch} onChange={setBranch} options={branchOpts} disabled={locked} {...inv('branch')} />
+                <Dropdown id="f-branch" ref={refs.branch} label="สาขา" value={vals.branch} onChange={set('branch')} options={branchOpts} disabled={locked} {...inv('branch')} />
               </Field>
               <Field id="f-tech" label={techLabel} err={errs.tech}>
                 <Dropdown id="f-tech" ref={refs.tech} label={techLabel} value={vals.tech} onChange={set('tech')} options={techOpts} disabled={locked || (!!t && t.routine && t.status !== 'todo')}{...inv('tech')} />
+                {elsewhere.length > 0 && <p className="hint">ช่างสาขาอื่นของวันนั้นอยู่ท้ายรายการ</p>}
               </Field>
               <Field id="f-date" label={dateLabel} err={errs.date}>
                 <DateField id="f-date" ref={refs.date} label={dateLabel} value={vals.date} onChange={set('date')} min={MIN_DAY} max={MAX_DAY} disabled={locked} {...inv('date')} />
@@ -208,7 +207,8 @@ const Drawer = forwardRef(function Drawer({ mode, task: t, date, branch, techs, 
               </Field>
               <Field id="f-place" label="สถานที่" err={errs.place} wide>
                 <input type="text" id="f-place" name="place" list="places" ref={refs.place} value={vals.place} onChange={(e) => set('place')(e.target.value)}
-                  autoComplete="off" disabled={locked} aria-invalid={errs.place ? 'true' : undefined} aria-describedby={inv('place').describedBy} />
+                  maxLength={40} autoComplete="off" disabled={locked} aria-invalid={errs.place ? 'true' : undefined} aria-describedby={inv('place').describedBy} />
+                <p className="hint">ไม่เกิน 40 ตัวอักษร</p>
               </Field>
               {editable ? (
                 <div className="field full">

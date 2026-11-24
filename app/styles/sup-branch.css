@@ -1,0 +1,26 @@
+/* Roster page: where a technician works (สาขาหลัก, สาขาที่ไปในแต่ละวัน, สาขาวันนั้น). Scope: .s-sup. Chips, hints and labels come from sup-plan.css.
+   Branches are told apart by their names only: red / yellow / green stay for task status. */
+
+.s-sup .br-home { display: grid; gap: .125rem; }
+
+/* the weekday branches on a technician's card */
+.s-sup .br-box { display: grid; gap: .75rem; padding: .875rem 1rem; background: var(--ground); border: 1px solid var(--line); border-radius: 12px; }
+.s-sup .br-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+.s-sup .br-sum { display: grid; gap: .125rem; flex: 1 1 14rem; min-width: 0; }
+.s-sup .br-line { font: 700 1.125rem/1.4 var(--kanit); overflow-wrap: anywhere; }
+.s-sup .br-sum .rs-hint { display: flex; align-items: center; gap: .375rem; }
+.s-sup .br-bar .rs-chip[aria-expanded="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
+.s-sup .br-panel { display: grid; gap: .75rem; padding-top: .75rem; border-top: 1px solid var(--line); }
+.s-sup .br-quick { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.s-sup .br-quick .rs-lab { margin-right: .25rem; }
+.s-sup .br-rows { display: grid; gap: .5rem; }
+.s-sup .br-row { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); align-items: center; gap: .375rem .75rem; }
+.s-sup .br-day { font: 700 1rem var(--kanit); }
+.s-sup .br-opts { display: flex; flex-wrap: wrap; gap: .5rem; }
+@media (max-width: 520px) {
+  .s-sup .br-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* the week table: the branch of a working day. Away from the home branch it gets a frame (and the words in the screen reader text). */
+.s-sup .br-tag { display: inline-flex; align-items: center; gap: .25rem; color: var(--quiet); font: 700 1rem var(--kanit); white-space: nowrap; }
+.s-sup .br-tag[data-away] { padding: 0 .5rem; background: var(--brand-soft); border: 1.5px solid var(--brand); border-radius: 10px; color: var(--ink); }

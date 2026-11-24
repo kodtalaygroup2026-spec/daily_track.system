@@ -1,0 +1,97 @@
+/* The work report page (/report) and its entry on /today. Scope: .s-tech; tokens and the shared dialog, button and toast rules come from tech.css and tech-calendar.css */
+
+/* entry on /today */
+.s-tech .rep-entry { margin-top: 1.25rem; }
+.s-tech a.pri { text-decoration: none; }
+.s-tech .rep-entry .quiet { margin-top: .5rem; text-align: center; font-size: 1.0625rem; font-variant-numeric: tabular-nums; }
+
+.s-tech .rdate { margin-top: 1.25rem; font: 700 1.5rem/1.25 var(--kanit); overflow-wrap: anywhere; }
+
+/* day switch and the two tabs: pressed / selected = brand flood plus a tick, so it is never colour alone */
+.s-tech .seg, .s-tech .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin-top: .75rem; }
+.s-tech .seg button, .s-tech .tab {
+  display: flex; align-items: center; justify-content: center; gap: .375rem; min-width: 0; min-height: 3.5rem; padding: .25rem .5rem;
+  background: var(--surface); color: var(--ink); border: 1.5px solid var(--line-strong); border-radius: 12px; font: 700 1.0625rem/1.25 var(--kanit); text-align: center; cursor: pointer;
+}
+.s-tech .seg button:active, .s-tech .tab:active { background: var(--brand-soft); }
+.s-tech .seg button[aria-pressed="true"], .s-tech .tab[aria-selected="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
+.s-tech .tab { flex-direction: column; gap: 0; }
+.s-tech .tab .n { font: 500 1rem/1.25 'Noto Sans Thai', system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+.s-tech .tabs { margin-top: 1rem; }
+
+.s-tech .panel { margin-top: 1.25rem; }
+.s-tech .panel > h2 { font: 700 1.5rem/1.25 var(--kanit); overflow-wrap: anywhere; }
+.s-tech .panel > .pri { margin-top: .75rem; }
+.s-tech .panel > .quiet { margin-top: 1rem; }
+.s-tech .pri[aria-disabled="true"] { background: var(--quiet); border-color: var(--quiet); cursor: progress; }
+.s-tech .retry[aria-disabled="true"] { background: var(--quiet); cursor: progress; }
+.s-tech .panel .empty { padding: 1.25rem .25rem; }
+.s-tech .tl .pri { margin-top: .5rem; }
+.s-tech .tl .sx { margin-left: .5rem; }
+
+/* one report */
+.s-tech .cards { list-style: none; margin: .75rem 0 0; padding: 0; display: grid; gap: .75rem; }
+.s-tech .rp { display: grid; gap: .5rem; padding: 1rem 1.25rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); font-size: 1.0625rem; }
+.s-tech .rp h3 { margin: 0; font: 700 1.5rem/1.25 var(--kanit); overflow-wrap: anywhere; }
+.s-tech .rp p { overflow-wrap: anywhere; }
+.s-tech .rp .quiet { font-variant-numeric: tabular-nums; }
+.s-tech .k { font: 700 1rem var(--kanit); }
+.s-tech .thumbs { display: flex; flex-wrap: wrap; gap: .5rem; }
+.s-tech .noimg { display: grid; place-items: center; font: 700 1rem var(--kanit); }
+.s-tech .acts { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .25rem; }
+.s-tech .acts .tb { flex: 1 1 auto; }
+
+/* the report box (a native modal dialog, the same as the calendar's) */
+.s-tech dialog.rep { max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.s-tech fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.s-tech legend, .s-tech .lab { padding: 0; margin-bottom: .375rem; font: 700 1rem var(--kanit); }
+.s-tech fieldset.grp { display: grid; gap: .75rem; }
+.s-tech fieldset.fld { display: grid; gap: .5rem; }
+.s-tech .cf-body textarea {
+  width: 100%; min-height: 6rem; padding: .75rem 1rem; background: var(--surface); color: var(--ink); border: 1.5px solid var(--line-strong); border-radius: 12px;
+  font: 500 1.0625rem/1.4 'Noto Sans Thai', system-ui, sans-serif; resize: vertical;
+}
+/* invalid: a thick ink frame plus the message and icon, kept heavy on purpose */
+.s-tech .cf-body textarea[aria-invalid="true"] { border-width: 4px; border-color: var(--ink); }
+.s-tech .cf-body input:disabled, .s-tech .cf-body textarea:disabled { background: var(--ground); color: var(--quiet); border-style: dashed; }
+.s-tech .cf-body button:disabled { color: var(--quiet); border-style: dashed; cursor: not-allowed; }
+
+/* a routine task as a big radio card: the real radio is hidden, the card carries the focus ring and a tick when chosen */
+.s-tech .cf-body .rc {
+  position: relative; display: flex; align-items: center; gap: .75rem; min-height: 3.5rem; padding: .75rem;
+  background: var(--surface); border: 1.5px solid var(--line-strong); border-radius: 12px; cursor: pointer;
+}
+.s-tech .cf-body .rc input { position: absolute; opacity: 0; width: 1px; height: 1px; min-height: 0; padding: 0; border: 0; pointer-events: none; }
+.s-tech .rc:has(input:checked) { background: var(--brand); border-color: var(--brand); color: #fff; }
+.s-tech .rc:has(input:focus-visible) { outline: 3px solid var(--brand); outline-offset: 3px; }
+.s-tech .rd { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border: 3px solid currentColor; border-radius: 50%; }
+.s-tech .rd .ic { width: 1.25rem; height: 1.25rem; visibility: hidden; }
+.s-tech .rc input:checked ~ .rd .ic { visibility: visible; }
+.s-tech .rx { flex: 1; min-width: 0; display: grid; overflow-wrap: anywhere; }
+.s-tech .rt { font: 700 1.0625rem var(--kanit); }
+/* status chips keep an ink or white frame: they sit on a status fill, so the grey control line would be too faint */
+.s-tech .sx {
+  flex: none; display: inline-flex; align-items: center; min-height: 2rem; padding: 0 .625rem;
+  border: 1.5px solid var(--ink); border-radius: 1rem; font: 700 1rem var(--kanit);
+}
+.s-tech .sx[data-s="todo"] { background: var(--red); border: 2px dashed #fff; color: #fff; }
+.s-tech .sx[data-s="doing"] { background: var(--yellow); color: var(--ink); }
+.s-tech .sx[data-s="done"] { background: var(--green); border-color: #fff; color: #fff; }
+
+/* take or choose photos, and the photos of the box with the state of each */
+.s-tech .cf-body .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.s-tech .cf-body .two button { padding: 0 .5rem; background: var(--surface); }
+.s-tech .shots { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.s-tech .shots:empty { display: none; }
+.s-tech .sh { display: flex; align-items: center; gap: .75rem; min-height: 3.5rem; }
+.s-tech .sh .shot { flex: none; width: 3.5rem; height: 3.5rem; border: 1px solid var(--line); border-radius: 12px; }
+.s-tech .sh .cap { flex: 1; min-width: 0; }
+.s-tech .sh .sw { display: inline-flex; align-items: center; gap: .25rem; }
+.s-tech .sh .sw .ic { width: 1.125rem; height: 1.125rem; }
+.s-tech .cf-body .sh .tb { flex: none; width: auto; min-width: 3.5rem; padding: 0; background: var(--surface); }
+
+/* hover tint only where a real pointer exists, never on the selected state */
+@media (hover: hover) {
+  .s-tech .seg button:not([aria-pressed="true"]):hover, .s-tech .tab:not([aria-selected="true"]):hover,
+  .s-tech .cf-body .rc:not(:has(input:checked)):hover { background: var(--hover); }
+}

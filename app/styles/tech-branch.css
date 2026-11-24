@@ -1,0 +1,7 @@
+/* "today you are at branch X" on /today: plain words in a soft brand frame (the status colours stay for tasks) */
+.s-tech .tb-at {
+  display: flex; align-items: center; gap: .625rem; min-height: 3.5rem; margin-top: .75rem; padding: .625rem 1rem;
+  background: var(--brand-soft); color: var(--ink); border: 1.5px solid var(--brand); border-radius: var(--radius); font: 700 1.25rem/1.25 var(--kanit); overflow-wrap: anywhere;
+}
+.s-tech .tb-at .ic { flex: none; width: 1.75rem; height: 1.75rem; color: var(--brand); }
+.s-tech .tb-at small { display: block; font: 500 1rem/1.3 'Noto Sans Thai', system-ui, sans-serif; color: var(--quiet); }

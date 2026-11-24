@@ -1,0 +1,43 @@
+/* Supervisor daily report page (รายงานประจำวัน). Scope: .s-sup (tokens come from sup.css; the page frame, loading and error bars from sup.css / sup-plan.css). */
+
+.s-sup .rp-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.5rem; }
+.s-sup .rp-tool { display: flex; align-items: center; gap: .625rem; font: 700 1rem var(--kanit); }
+.s-sup .rp-tool .dd { min-width: 11rem; }
+.s-sup .rp-export { margin-left: auto; gap: .5rem; }
+.s-sup .rp-export[aria-disabled="true"] { color: var(--quiet); border-style: dashed; cursor: default; }
+.s-sup .rp-sum { font: 700 1rem var(--kanit); font-variant-numeric: tabular-nums; }
+.s-sup .rp-sum:empty { display: none; }
+.s-sup .plan .loaderr { margin-bottom: 0; }
+.s-sup .rp-tools .seg { max-width: 100%; }
+.s-sup .rp-tools .seg button { flex: 1 1 auto; min-width: 0; padding: 0 .75rem; line-height: 1.25; }
+.s-sup .rp-cap, .s-sup .rp-ok { display: flex; align-items: center; gap: .5rem; font-weight: 700; }
+
+/* the technicians who have sent nothing: dashed = nothing yet, as an empty photo slot is */
+.s-sup .rp-miss { display: grid; gap: .75rem; padding: 1.25rem; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.s-sup .rp-miss h2, .s-sup .rp-ghead h2 { font: 700 1.25rem/1.25 var(--kanit); }
+.s-sup .rp-miss ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: .75rem; margin: 0; padding: 0; list-style: none; }
+.s-sup .rp-miss li { display: grid; gap: .125rem; min-width: 0; padding: .75rem 1rem; border: 1.5px dashed var(--line-strong); border-radius: 12px; overflow-wrap: anywhere; }
+.s-sup .rp-miss b { font: 700 1rem var(--kanit); }
+.s-sup .rp-miss li span, .s-sup .rp-ghead span, .s-sup .rp-ghead p, .s-sup .rp-meta { color: var(--quiet); }
+
+/* one technician, then their reports */
+.s-sup .rp-group { display: grid; gap: .75rem; min-width: 0; }
+.s-sup .rp-ghead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem 1rem; }
+.s-sup .rp-ghead h2 { overflow-wrap: anywhere; }
+.s-sup .rp-ghead h2 span { margin-left: .5rem; font: 500 1rem 'Noto Sans Thai', system-ui, sans-serif; }
+.s-sup .rp-ghead p { font-variant-numeric: tabular-nums; }
+.s-sup .rp-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.s-sup .rp-card { display: flex; flex-direction: column; gap: .5rem; min-width: 0; padding: 1.25rem; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.s-sup .rp-card h3 { margin: 0; font: 700 1.25rem/1.25 var(--kanit); overflow-wrap: anywhere; }
+.s-sup .rp-card p { margin: 0; overflow-wrap: anywhere; }
+.s-sup .rp-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem .75rem; }
+.s-sup .rp-kind { display: inline-flex; align-items: center; gap: .375rem; min-height: 2rem; padding: 0 .5rem; background: var(--brand-soft); border: 1.5px solid var(--brand); border-radius: 10px; font: 700 1rem var(--kanit); white-space: nowrap; }
+.s-sup .rp-meta { font-variant-numeric: tabular-nums; }
+.s-sup .rp-lab { font: 700 1rem var(--kanit); }
+.s-sup .rp-note { white-space: pre-wrap; }
+
+.s-sup .rp-shots { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: auto; padding-top: .5rem; }
+.s-sup .rp-shot { display: block; flex: none; width: 5rem; height: 5rem; padding: 0; border: 1.5px solid var(--line-strong); border-radius: 12px; overflow: hidden; background: var(--surface); cursor: pointer; transition: background-color .15s ease; }
+.s-sup .rp-shot:hover { background: var(--hover); }
+.s-sup .rp-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.s-sup .rp-shot[data-bad] { padding: 0 .25rem; border-style: dashed; color: var(--quiet); font: 500 1rem/1.25 'Noto Sans Thai', system-ui, sans-serif; }

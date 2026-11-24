@@ -11,15 +11,15 @@
 
 /* the table scrolls inside its own frame, never the page; the code column stays put beside it */
 .s-sup .st-table { min-width: 62rem; border-collapse: separate; border-spacing: 0; }
-.s-sup .st-table th, .s-sup .st-table td { background: #fff; border-bottom: 2px solid var(--ground); }
-.s-sup .st-table thead th { background: var(--ground); border-bottom: 2px solid var(--ink); }
+.s-sup .st-table th, .s-sup .st-table td { background: var(--surface); border-bottom: 1px solid var(--line); }
+.s-sup .st-table thead th { background: var(--ground); border-bottom: 1px solid var(--line); }
 .s-sup .st-table tbody th { padding: 0 1rem; font: 700 1rem var(--kanit); text-align: left; }
-.s-sup .st-table th:first-child { position: sticky; left: 0; z-index: 1; border-right: 2px solid var(--ink); }
+.s-sup .st-table th:first-child { position: sticky; left: 0; z-index: 1; border-right: 1px solid var(--line); }
 .s-sup .st-table thead th:first-child { z-index: 2; }
 .s-sup .st-table tbody tr { cursor: default; }
 .s-sup .st-table tbody tr:last-child > * { border-bottom: 0; }
 .s-sup .st-table tbody tr:hover > * { background: var(--hover); }
-.s-sup .st-table tbody tr[data-new] > * { background: var(--ground); }
+.s-sup .st-table tbody tr[data-new] > * { background: var(--brand-soft); }
 .s-sup .st-table tbody tr[data-off] > * { color: var(--quiet); }
 .s-sup .st-table tbody tr[data-off] th { font-weight: 500; }
 .s-sup .st-name { min-width: 10rem; overflow-wrap: anywhere; }
@@ -35,7 +35,7 @@
 .s-sup .st-form-err { display: flex; align-items: flex-start; gap: .5rem; margin-top: 1.25rem; }
 .s-sup .st-form-err .ic { margin-top: .125rem; }
 .s-sup .st-cred { display: grid; gap: .75rem; margin: 1.25rem 0 0; }
-.s-sup .st-cred > div { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; padding: .75rem 1rem; border: 2px solid var(--ink); border-radius: 12px; }
+.s-sup .st-cred > div { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; padding: .75rem 1rem; border: 1px solid var(--line); border-radius: 12px; }
 .s-sup .st-cred dt { flex-basis: 100%; color: var(--quiet); font: 700 1rem var(--kanit); }
 .s-sup .st-cred dd { flex: 1 1 10rem; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; min-width: 0; margin: 0; }
 .s-sup .st-val { flex: 1 1 8rem; min-width: 0; font: 700 1.25rem/1.25 var(--kanit); letter-spacing: .04em; overflow-wrap: anywhere; user-select: all; }

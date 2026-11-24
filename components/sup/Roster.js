@@ -8,11 +8,12 @@ import Dropdown from '@/components/Dropdown';
 import DateField from '@/components/DateField';
 import { MAX_DAY, MIN_DAY, addDays, dayNum, dur, isoOf, th, toDate, today } from '@/lib/dates';
 import { BRANCHES, branchLabel } from '@/lib/branches';
-import { assignCover, decideLeave, errText, getRoster, listLeaves, setAbsent, setDayOverride, setRoster, setRotation, setStaff, supDay, updateTask } from '@/lib/api';
-import { ROTATIONS, WEEKDAYS, dowOf, needsCover, onRoster, techWorks, weekOf } from '@/lib/roster';
+import { assignCover, decideLeave, errText, getRoster, listLeaves, setAbsent, setBranchDate, setBranchWeek, setDayOverride, setRoster, setRotation, setStaff, supDay, updateTask } from '@/lib/api';
+import { ROTATIONS, WEEKDAYS, branchOn, dowOf, needsCover, onRoster, techWorks, weekOf } from '@/lib/roster';
 import Shell from './Shell';
 import { Failed, Modal, useToast } from './Routines';
 import { Icon } from './ui';
+import '@/app/styles/sup-branch.css';
 
 const TABS = [{ k: 'week', t: 'รายสัปดาห์' }, { k: 'pattern', t: 'ตารางประจำ' }, { k: 'leaves', t: 'คำขอลา' }];
 const LV = { approved: ['check', 'อนุมัติแล้ว'], rejected: ['close', 'ไม่อนุมัติ'], cancelled: ['', 'ช่างยกเลิกแล้ว'] };
@@ -29,6 +30,19 @@ const picked = (tech, iso) => !!tech.overrides && iso in tech.overrides; // chos
 // a hand-chosen off day is just "หยุด": it is not the pattern's day off
 const stLabel = (st, pick) => (st === 'off' && pick ? 'หยุด' : ST[st][1]);
 const Mark = () => <span className="rs-mark"><Icon n="pencil" />เลือกเอง</span>;
+
+// where a technician goes each weekday (branchDays; '' = the home branch), as runs of days: "จ.–พ. RCA · พฤ.–ศ. BN · ส. สาขาหลัก"
+const bw = (t, dow) => (t.branchDays && t.branchDays[dow]) || '';
+const homeWord = (t) => (t.branch ? `สาขาหลัก ${branchLabel(t.branch)}` : 'สาขาหลัก');
+function brSummary(t) {
+  const runs = [];
+  WEEKDAYS.forEach((w) => {
+    const b = bw(t, w.dow), last = runs[runs.length - 1];
+    if (last && last.b === b) last.ws.push(w); else runs.push({ b, ws: [w] });
+  });
+  if (runs.length === 1) return runs[0].b ? `ทุกวันสาขา ${branchLabel(runs[0].b)}` : `ทุกวันที่${homeWord(t)}`;
+  return runs.map(({ b, ws }) => `${ws.length > 1 ? `${ws[0].short}–${ws[ws.length - 1].short}` : ws[0].short} ${b ? branchLabel(b) : 'สาขาหลัก'}`).join(' · ');
+}
 
 // "13 พ.ย. 2569" / "13–15 พ.ย. 2569 · 3 วัน" / "30 พ.ย. – 2 ธ.ค. 2569 · 3 วัน"
 function leaveText({ from, to }) {
@@ -147,6 +161,7 @@ function Card({ t, save, patch }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [pkErr, setPkErr] = useState(''); // the strip's error lives here: the strip remounts when the mode changes
+  const [brOpen, setBrOpen] = useState(false); // the weekday branch choices are shown
   const cur = draft || t.rotation;
   const dirty = !!draft && !(t.rotation && t.rotation.start === draft.start && t.rotation.mask === draft.mask);
   const works = !!cur && cur.mask.includes('1');
@@ -185,6 +200,21 @@ function Card({ t, save, patch }) {
     : <p className="rs-hint">ช่างคนนี้ไม่ใช้งาน จึงไม่ทำงานเลย เปิดใช้งานก่อนจึงจะเลือกวันทำ/หยุดเองได้</p>;
   const why = `rs-why-${t.id}`;
 
+  // each tap shows at once and is queued like the weekly days; the write carries all 7 weekdays (index 0 = Sunday, '' = the home branch)
+  const setWeek = (next, msg) => save(t, { branchDays: next }, () => setBranchWeek(t.id, Array.from({ length: 7 }, (_, i) => next[i] || '')), msg);
+  const setDow = (w, b) => {
+    if (bw(t, w.dow) === b) return;
+    const next = { ...t.branchDays };
+    if (b) next[w.dow] = b; else delete next[w.dow];
+    setWeek(next, `${t.name} วัน${w.long}: ไป${b ? `สาขา ${branchLabel(b)}` : 'สาขาหลัก'}`);
+  };
+  const setAll = (b) => {
+    if (WEEKDAYS.every((w) => bw(t, w.dow) === b)) return;
+    setWeek(b ? Object.fromEntries(WEEKDAYS.map((w) => [w.dow, b])) : {}, `${t.name} ทุกวัน: ไป${b ? `สาขา ${branchLabel(b)}` : 'สาขาหลัก'}`);
+  };
+  const brOpts = [...BRANCHES, { value: '', label: homeWord(t) }];
+  const dated = Object.keys(t.branchDates || {}).filter((d) => d >= today()).length; // upcoming dates with a branch chosen by hand
+
   return (
     <li className="rs-card" data-off={t.active ? undefined : ''}>
       <div className="rs-top">
@@ -192,13 +222,60 @@ function Card({ t, save, patch }) {
           <b>{t.name}</b>
           <span>{t.code}{!t.active && ' · ไม่ใช้งาน'}</span>
         </div>
-        <Dropdown id={`br-${t.id}`} label={`สาขาของ ${t.name}`} value={t.branch || ''}
-          options={t.branch ? BRANCHES : [{ value: '', label: 'ยังไม่ระบุสาขา' }, ...BRANCHES]}
-          onChange={(b) => save(t, { branch: b }, () => setStaff(t.id, { name: t.name, branch: b, active: t.active }), `${t.name} อยู่สาขา ${branchLabel(b)} แล้ว`)} />
+        <div className="br-home">
+          <span className="rs-lab" aria-hidden="true">สาขาหลัก</span>
+          <Dropdown id={`br-${t.id}`} label={`สาขาหลักของ ${t.name}`} value={t.branch || ''}
+            options={t.branch ? BRANCHES : [{ value: '', label: 'ยังไม่ระบุสาขา' }, ...BRANCHES]}
+            onChange={(b) => save(t, { branch: b }, () => setStaff(t.id, { name: t.name, branch: b, active: t.active }), `${t.name} สาขาหลักคือ ${branchLabel(b)} แล้ว`)} />
+        </div>
         <button type="button" role="switch" aria-checked={t.active} className="rs-sw" aria-label={`ใช้งานอยู่ ${t.name}`}
           onClick={() => save(t, { active: !t.active }, () => setStaff(t.id, { name: t.name, branch: t.branch, active: !t.active }), t.active ? `${t.name} ไม่ใช้งานแล้ว` : `${t.name} ใช้งานอีกครั้งแล้ว`)}>
           <i aria-hidden="true" />ใช้งานอยู่
         </button>
+      </div>
+
+      <div className="br-box" role="group" aria-labelledby={`bw-${t.id}`}>
+        <div className="br-bar">
+          <div className="br-sum">
+            <p className="rs-lab" id={`bw-${t.id}`}>สาขาที่ไปในแต่ละวัน</p>
+            <p className="br-line">{brSummary(t)}</p>
+            {dated > 0 && <p className="rs-hint"><Icon n="pencil" />เลือกสาขาเฉพาะวันไว้อีก {dated} วัน ดูได้ในแท็บรายสัปดาห์</p>}
+          </div>
+          <button type="button" className="rs-chip" aria-expanded={brOpen} aria-controls={`bwp-${t.id}`}
+            aria-label={`${brOpen ? 'เสร็จ' : 'เลือกสาขา'} สาขาแต่ละวันของ ${t.name}`} onClick={() => setBrOpen(!brOpen)}>
+            {brOpen ? <><Icon n="check" />เสร็จ</> : <><Icon n="pencil" />เลือกสาขา</>}
+          </button>
+        </div>
+        {brOpen && (
+          <div className="br-panel" id={`bwp-${t.id}`}>
+            <div className="br-quick" role="group" aria-label={`ตั้งสาขาทุกวันพร้อมกัน ของ ${t.name}`}>
+              <span className="rs-lab">ตั้งทุกวันพร้อมกัน</span>
+              {BRANCHES.map((b) => {
+                const on = WEEKDAYS.every((w) => bw(t, w.dow) === b.value);
+                return <button type="button" key={b.value} className="rs-chip" aria-pressed={on} onClick={() => setAll(b.value)}>{on && <Icon n="check" />}ทุกวันสาขา {b.label}</button>;
+              })}
+              <button type="button" className="rs-chip" aria-pressed={WEEKDAYS.every((w) => !bw(t, w.dow))} onClick={() => setAll('')}>
+                {WEEKDAYS.every((w) => !bw(t, w.dow)) && <Icon n="check" />}ทุกวันตามสาขาหลัก
+              </button>
+            </div>
+            <div className="br-rows">
+              {WEEKDAYS.map((w) => (
+                <div className="br-row" key={w.dow} role="group" aria-label={`สาขาของ ${t.name} วัน${w.long}`}>
+                  <b className="br-day">{w.long}</b>
+                  <div className="br-opts">
+                    {brOpts.map((o) => {
+                      const on = bw(t, w.dow) === o.value;
+                      return <button type="button" key={o.value} className="rs-chip" aria-pressed={on} onClick={() => setDow(w, o.value)}>{on && <Icon n="check" />}{o.label}</button>;
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="rs-hint">
+              สาขาบอกว่าช่างไปที่ไหน ไม่ได้บอกว่าทำงานวันไหน{cur ? ' · ช่างสลับเป็นรอบวัน สาขายังนับตามวันในสัปดาห์ของแต่ละวันที่ ไม่นับตามรอบ' : ''} · เลือกสาขาเฉพาะวันที่เดียวได้ในแท็บรายสัปดาห์
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="rs-mode">
@@ -333,6 +410,8 @@ function Week({ monday, setMonday, data, fail, onRetry, onOpen, onTab }) {
   const techs = data ? data.techs.filter((x) => x.active) : [];
   const need = (iso) => (data ? data.tasks.filter((t) => t.date === iso && needsCover(t, data.techs, data.absent)).length : 0);
   const nav = (m) => () => setMonday(m);
+  // more than one branch at work this week: every working cell then names its branch
+  const multi = new Set(techs.flatMap((x) => days.filter((d) => onRoster(x, d.iso)).map((d) => branchOn(x, d.iso))).filter(Boolean)).size > 1;
 
   return (
     <>
@@ -382,18 +461,27 @@ function Week({ monday, setMonday, data, fail, onRetry, onOpen, onTab }) {
               </tr>
               {techs.map((x) => (
                 <tr key={x.id}>
-                  <th scope="row"><b>{x.name}</b><small>{x.code} · {branchLabel(x.branch)}</small></th>
+                  <th scope="row"><b>{x.name}</b><small>{x.code}{x.branch && ` · สาขาหลัก ${branchLabel(x.branch)}`}</small></th>
                   {days.map((d) => {
                     const st = stateOf(data, x, d.iso);
                     const abs = data.absent.find((a) => a.techId === x.id && a.day === d.iso);
                     const n = data.tasks.filter((t) => t.date === d.iso && t.techId === x.id).length;
                     const open = affected(data, x, d.iso).filter((t) => needsCover(t, data.techs, data.absent)).length;
+                    const at = branchOn(x, d.iso);
+                    const away = !!at && at !== x.branch;
+                    const hand = !!(x.branchDates && x.branchDates[d.iso]);
                     return (
                       <td key={d.iso}>
                         <button type="button" className="rs-cell" data-st={st} onClick={() => onOpen(x.id, d.iso)}>
                           <span className="sr">{x.name} {longDay(d.iso)}: </span>
                           <span className="rs-st">{ST[st][0] ? <Icon n={ST[st][0]} /> : dash}{stLabel(st, picked(x, d.iso))}</span>
                           {picked(x, d.iso) && st !== 'absent' && <Mark />}
+                          {st === 'works' && at && (multi || away) && (
+                            <span className="br-tag" data-away={away ? '' : undefined}>
+                              สาขา {branchLabel(at)}{hand && <Icon n="pencil" />}
+                              <span className="sr">{away ? ' (ไม่ใช่สาขาหลัก)' : ''}{hand ? ' (เลือกเอง)' : ''}</span>
+                            </span>
+                          )}
                           {abs && abs.note && <span className="rs-memo">{abs.note}</span>}
                           <span className="rs-n">{n ? `${n} งาน` : 'ไม่มีงาน'}</span>
                           {open > 0 && <span className="rs-need"><Icon n="alert" />รอคนแทน {open}</span>}
@@ -436,14 +524,18 @@ function CellBox({ data, techId, day, onClose, reload, toast }) {
   const st = stateOf(data, tech, day);
   const pick = tech.overrides && tech.overrides[day]; // undefined = on the pattern
   const byPattern = onRoster({ ...tech, overrides: {} }, day);
+  const chosen = (tech.branchDates && tech.branchDates[day]) || ''; // '' = no branch chosen for this date
+  const usual = branchOn({ ...tech, branchDates: {} }, day); // what the weekday or the home branch gives
+  const usualTxt = usual ? branchLabel(usual) : 'ยังไม่ระบุสาขา';
   const list = affected(data, tech, day);
   const total = data.tasks.filter((t) => t.date === day && (t.techId === techId || (t.routine && t.ownerId === techId))).length;
   const crew = data.techs.filter((x) => x.id !== techId && techWorks(x, data.absent, day));
   const nameOf = (id) => (data.techs.find((x) => x.id === id) || { name: '' }).name;
   const opts = (t) => {
-    const b = t.branch || tech.branch; // same branch first
-    const o = [...crew.filter((x) => x.branch === b), ...crew.filter((x) => x.branch !== b)]
-      .map((x) => ({ value: x.id, label: x.branch === b ? x.name : `${x.name} · ${branchLabel(x.branch)}` }));
+    const b = t.branch || branchOn(tech, t.date); // those at the task's branch that day first, the others with the branch they are at
+    const at = (x) => branchOn(x, t.date);
+    const o = [...crew.filter((x) => at(x) === b), ...crew.filter((x) => at(x) !== b)]
+      .map((x) => ({ value: x.id, label: at(x) === b ? x.name : `${x.name} · ${at(x) ? `สาขา ${branchLabel(at(x))}` : 'ยังไม่ระบุสาขา'}` }));
     if (t.techId && !crew.some((x) => x.id === t.techId)) o.unshift({ value: t.techId, label: `${t.tech} (ไม่ได้ทำงานวันนั้น)` });
     return t.routine ? [{ value: '', label: 'ยังไม่มีคนทำ' }, ...o] : o; // only a routine task can wait with nobody
   };
@@ -476,6 +568,20 @@ function CellBox({ data, techId, day, onClose, reload, toast }) {
             </div>
           </div>
         ) : <p className="lock">ช่างคนนี้ไม่ใช้งาน จึงไม่ทำงานเลย</p>}
+        {tech.active && (
+          <div className="rs-pk" role="group" aria-labelledby="rs-br-l">
+            <p className="rs-lab" id="rs-br-l">สาขาวันนั้น</p>
+            <div className="rs-presets">
+              {[{ value: '', label: `ตามปกติ (${usualTxt})` }, ...BRANCHES].map((o) => (
+                <button type="button" key={o.value} className="rs-chip" aria-pressed={chosen === o.value} aria-disabled={busy}
+                  onClick={() => { if (chosen !== o.value) act(() => setBranchDate(techId, day, o.value), o.value ? `${tech.name}: วันนั้นไปสาขา ${o.label}` : `${tech.name}: วันนั้นกลับไปตามปกติ (${usualTxt})`); }}>
+                  {chosen === o.value && <Icon n="check" />}{o.label}
+                </button>
+              ))}
+            </div>
+            <p className="rs-hint">ตามปกติ คือสาขาที่ตั้งไว้สำหรับวันนั้นของสัปดาห์ ถ้าไม่ได้ตั้งไว้ใช้สาขาหลัก</p>
+          </div>
+        )}
         <button type="button" role="switch" aria-checked={!!abs} className="rs-sw rs-abs" aria-disabled={busy}
           onClick={() => act(() => setAbsent(techId, day, !abs, abs ? '' : note.trim()), abs ? `${tech.name} กลับมาทำงานวันนั้นแล้ว` : `บันทึกว่า ${tech.name} ไม่อยู่แล้ว`)}>
           <i aria-hidden="true" />ไม่อยู่ (ลา/ป่วย)

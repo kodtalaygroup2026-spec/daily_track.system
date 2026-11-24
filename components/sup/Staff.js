@@ -17,10 +17,10 @@ const ROLES = [{ value: 'tech', label: 'ช่าง' }, { value: 'sup', label: 
 const roleLabel = (r) => (r === 'sup' ? 'หัวหน้า' : 'ช่าง');
 // a technician with no branch only exists on old data; a supervisor with none sees every branch
 const branchOf = (s) => branchLabel(s.branch) || (s.role === 'sup' ? 'ทุกสาขา' : 'ยังไม่ระบุ');
-const branchOpts = (role) => [{ value: '', label: role === 'sup' ? 'ทุกสาขา' : 'เลือกสาขา' }, ...BRANCHES];
+const branchOpts = (role) => [{ value: '', label: role === 'sup' ? 'ทุกสาขา' : 'เลือกสาขาหลัก' }, ...BRANCHES];
 const ALL = { value: '', label: 'ทั้งหมด' };
 const NO_FILTER = { role: '', branch: '', active: '' };
-const COLS = [{ k: 'code', t: 'รหัสพนักงาน' }, { k: 'name', t: 'ชื่อที่แสดง' }, { k: 'role', t: 'บทบาท' }, { k: 'branch', t: 'สาขา' }, { k: 'active', t: 'สถานะ' }, { k: 'last', t: 'เข้าใช้ล่าสุด' }];
+const COLS = [{ k: 'code', t: 'รหัสพนักงาน' }, { k: 'name', t: 'ชื่อที่แสดง' }, { k: 'role', t: 'บทบาท' }, { k: 'branch', t: 'สาขาหลัก' }, { k: 'active', t: 'สถานะ' }, { k: 'last', t: 'เข้าใช้ล่าสุด' }];
 const SORT = { code: (s) => s.code, name: (s) => s.name, role: (s) => s.role, branch: branchOf, active: (s) => (s.active ? 0 : 1), last: (s) => s.lastSignIn || '' };
 const cmp = (a, b) => (typeof a === 'number' ? a - b : a.localeCompare(b, 'th', { numeric: true }));
 
@@ -82,7 +82,8 @@ function Field({ id, label, err, wide, after, children }) {
 }
 // props for an input that may carry an error and a hint (id of the hint: h-<id>)
 const aria = (id, err, hint) => ({ 'aria-invalid': err ? 'true' : undefined, 'aria-describedby': [hint && `h-${id}`, err && `e-${id}`].filter(Boolean).join(' ') || undefined });
-const dd = (id, err) => ({ invalid: !!err, describedBy: err ? `e-${id}` : undefined });
+const dd = (id, err, hint) => ({ invalid: !!err, describedBy: [hint && `h-${id}`, err && `e-${id}`].filter(Boolean).join(' ') || undefined });
+const HOME_HINT = 'ช่างไปสาขาอื่นในแต่ละวันได้ที่หน้า ตารางช่างประจำสัปดาห์'; // shown under a technician's home branch
 
 function FormError({ text }) {
   return text ? <p className="err st-form-err" role="alert"><Icon n="alert" />{text}</p> : null;
@@ -147,7 +148,7 @@ function AddBox({ onClose, onCreated, toast }) {
     if (!CODE_RE.test(f.code)) er.code = CODE_ERR;
     if (!f.name) er.name = 'กรุณาระบุชื่อที่แสดง';
     else if (f.name.length > 40) er.name = 'ชื่อที่แสดงยาวเกินไป (สูงสุด 40 ตัวอักษร)';
-    if (f.role === 'tech' && !f.branch) er.branch = 'ช่างต้องเลือกสาขา';
+    if (f.role === 'tech' && !f.branch) er.branch = 'ช่างต้องเลือกสาขาหลัก';
     if (!goodPw(f.password)) er.password = PW_ERR;
     setV(f);
     setErrs(er);
@@ -183,7 +184,7 @@ function AddBox({ onClose, onCreated, toast }) {
     );
   }
   return (
-    <Modal title="เพิ่มพนักงาน" sub="สร้างรหัสสำหรับเข้าสู่ระบบ ช่างต้องเลือกสาขา" onClose={close} onSubmit={submit}>
+    <Modal title="เพิ่มพนักงาน" sub="สร้างรหัสสำหรับเข้าสู่ระบบ ช่างต้องเลือกสาขาหลัก" onClose={close} onSubmit={submit}>
       <div className="tm-body">
         <div className="tm-grid">
           <Field id="a-code" label="รหัสพนักงาน" err={errs.code} after={<p className="hint" id="h-a-code">พนักงานพิมพ์รหัสนี้เพื่อเข้าสู่ระบบ</p>}>
@@ -196,8 +197,8 @@ function AddBox({ onClose, onCreated, toast }) {
           <Field id="a-role" label="บทบาท">
             <Dropdown id="a-role" label="บทบาท" value={v.role} onChange={(r) => { set('role')(r); clear('branch'); }} options={ROLES} />
           </Field>
-          <Field id="a-branch" label="สาขา" err={errs.branch}>
-            <Dropdown id="a-branch" ref={refs.branch} label="สาขา" value={v.branch} onChange={set('branch')} options={branchOpts(v.role)} {...dd('a-branch', errs.branch)} />
+          <Field id="a-branch" label="สาขาหลัก" err={errs.branch} after={v.role === 'tech' && <p className="hint" id="h-a-branch">{HOME_HINT}</p>}>
+            <Dropdown id="a-branch" ref={refs.branch} label="สาขาหลัก" value={v.branch} onChange={set('branch')} options={branchOpts(v.role)} {...dd('a-branch', errs.branch, v.role === 'tech')} />
           </Field>
           <PasswordField id="a-password" label="รหัสผ่านเริ่มต้น" value={v.password} onChange={set('password')} err={errs.password} inputRef={refs.password} toast={toast} />
         </div>
@@ -236,7 +237,7 @@ function EditBox({ s, me, onClose, onSaved, onChanged }) {
     if (f.code !== saved && !CODE_RE.test(f.code)) er.code = CODE_ERR;
     if (!f.name) er.name = 'กรุณาระบุชื่อที่แสดง';
     else if (f.name.length > 40) er.name = 'ชื่อที่แสดงยาวเกินไป (สูงสุด 40 ตัวอักษร)';
-    if (f.role === 'tech' && !f.branch) er.branch = 'ช่างต้องเลือกสาขา';
+    if (f.role === 'tech' && !f.branch) er.branch = 'ช่างต้องเลือกสาขาหลัก';
     setV(f);
     setErrs(er);
     setFormErr('');
@@ -282,8 +283,8 @@ function EditBox({ s, me, onClose, onSaved, onChanged }) {
           <Field id="e-role" label="บทบาท">
             <Dropdown id="e-role" label="บทบาท" value={v.role} onChange={(r) => { set('role')(r); clear('branch'); }} options={ROLES} disabled={me} />
           </Field>
-          <Field id="e-branch" label="สาขา" err={errs.branch}>
-            <Dropdown id="e-branch" ref={refs.branch} label="สาขา" value={v.branch} onChange={set('branch')} options={branchOpts(v.role)} {...dd('e-branch', errs.branch)} />
+          <Field id="e-branch" label="สาขาหลัก" err={errs.branch} after={v.role === 'tech' && <p className="hint" id="h-e-branch">{HOME_HINT}</p>}>
+            <Dropdown id="e-branch" ref={refs.branch} label="สาขาหลัก" value={v.branch} onChange={set('branch')} options={branchOpts(v.role)} {...dd('e-branch', errs.branch, v.role === 'tech')} />
           </Field>
           <div className="field full">
             <span className="lab">สถานะ</span>
@@ -330,6 +331,7 @@ function DeleteBox({ s, onClose, onDeleted, onStale }) {
         <p className="pl-warn">ล็อกอินนี้จะใช้ไม่ได้และกู้คืนไม่ได้</p>
         <p className="pl-warn">งานที่เขาทำไปแล้วยังอยู่ในประวัติ โดยแสดงเป็น “{s.name} (ลบแล้ว)”</p>
         <p className="pl-warn">งานที่ยังไม่เริ่มจะกลายเป็น “ยังไม่มีคนทำ”</p>
+        <p className="pl-warn">รายงานงานที่ทำ ประวัติการลา และวันหยุดของเขาจะถูกลบไปด้วย ถ้าต้องการเก็บไว้ ให้ปิดการใช้งานไว้แทนการลบ</p>
         <FormError text={err && err.text} />
         {err && err.code === 'owns_templates' && <p><Link className="ghost" href="/supervisor/routines">ไปที่งานประจำ</Link></p>}
       </div>
@@ -531,8 +533,8 @@ export default function Staff({ user }) {
             <Dropdown id="st-role" label="บทบาท" value={filter.role} onChange={pick('role')} options={[ALL, ...ROLES]} disabled={idle} />
           </div>
           <div className="st-tool">
-            <label htmlFor="st-branch">สาขา</label>
-            <Dropdown id="st-branch" label="สาขา" value={filter.branch} onChange={pick('branch')} options={[ALL, ...BRANCHES]} disabled={idle} />
+            <label htmlFor="st-branch">สาขาหลัก</label>
+            <Dropdown id="st-branch" label="สาขาหลัก" value={filter.branch} onChange={pick('branch')} options={[ALL, ...BRANCHES]} disabled={idle} />
           </div>
           <div className="st-tool">
             <label htmlFor="st-active">สถานะ</label>

@@ -5,11 +5,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { addDays, dayNum, isoOf, th, toDate, today } from '@/lib/dates';
 import { WEEKDAYS, weekOf } from '@/lib/roster';
+import { branchLabel } from '@/lib/branches';
+import { session } from '@/lib/auth';
 import { cancelLeave, errText, myLeaves, requestLeave, techCalendar } from '@/lib/api';
 
 const P = {
   left: 'M15 5l-7 7 7 7', right: 'M9 5l7 7-7 7', check: 'M4.5 12.5l5 5 10-11', x: 'M6 6l12 12M18 6L6 18',
-  moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z', bag: 'M4 8h16v11H4zM9 8V5h6v3',
+  pin: 'M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11zM12 7.5v5M9.5 10h5', moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z', bag: 'M4 8h16v11H4zM9 8V5h6v3',
   clock: 'M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0M12 7v5l3 2', warn: 'M12 4l9 16H3zM12 10v4M12 17v.5',
 };
 function Ic({ d }) {
@@ -56,6 +58,10 @@ export default function TechCalendar() {
   const end = addDays(start, 41);
   const days = Array.from({ length: 42 }, (_, i) => addDays(start, i));
   const ready = !!cal && cal.start === start;
+  const home = (session() || {}).branch || ''; // the page shows this only after the session check, so the cache is fresh
+  // a branch tag shows on working days when it is not the home branch, or on all of them once the month shows more than one branch
+  const mixed = ready && new Set(Object.values(cal.days).filter((x) => kindOf(x) === 'work' && x.branch).map((x) => x.branch)).size > 1;
+  const brOf = (x) => (x && kindOf(x) === 'work' && x.branch ? x.branch : '');
   const maxDay = addDays(now, 90);
 
   // the newest load wins: answers of a month already left behind are dropped
@@ -225,14 +231,15 @@ export default function TechCalendar() {
             <div className="mg" aria-busy={!ready} onKeyDown={onKey}>
               {days.map((s) => {
                 const dt = toDate(s), x = ready ? cal.days[s] : null, k = x ? kindOf(x) : '';
-                const tasks = x ? taskText(x) : '';
-                const label = `${th(dt, LONG)}${s === now ? ' วันนี้' : ''}${x ? ` · ${KIND[k][0]}${x.absent && x.note ? ` (${x.note})` : ''}${tasks ? ` · ${tasks}` : ''}` : ''}`;
+                const tasks = x ? taskText(x) : '', br = brOf(x), tag = br && (mixed || br !== home) ? branchLabel(br) : '';
+                const label = `${th(dt, LONG)}${s === now ? ' วันนี้' : ''}${x ? ` · ${KIND[k][0]}${br ? ` สาขา ${branchLabel(br)}` : ''}${x.absent && x.note ? ` (${x.note})` : ''}${tasks ? ` · ${tasks}` : ''}` : ''}`;
                 return (
                   <button key={s} type="button" data-d={s} data-k={k || undefined} aria-label={label} aria-pressed={s === sel}
                     aria-current={s === now ? 'date' : undefined} tabIndex={s === tab ? 0 : -1}
                     className={`dc${dt.getMonth() !== toDate(month).getMonth() ? ' out' : ''}${s === now ? ' now' : ''}`} onClick={() => setSel(s)}>
                     <span className="dn">{k && <Ic d={KIND[k][1]} />}{dt.getDate()}</span>
                     {x && <span className="w">{KIND[k][0]}</span>}
+                    {tag && <span className="br">{tag}</span>}
                     {tasks && <span>{tasks}</span>}
                   </button>
                 );
@@ -244,6 +251,7 @@ export default function TechCalendar() {
               {d ? (
                 <>
                   <p className="stw"><Ic d={KIND[kindOf(d)][1]} />{KIND[kindOf(d)][0]}</p>
+                  {brOf(d) && <p className="stw"><Ic d={P.pin} />{`สาขา ${branchLabel(brOf(d))}${home && brOf(d) !== home ? ` · ต่างจากสาขาหลัก (${branchLabel(home)})` : ''}`}</p>}
                   {d.absent && d.note && <p>{`หมายเหตุ: ${d.note}`}</p>}
                   <p>{d.tasks ? `มี ${d.tasks} งาน · เสร็จ ${d.done}` : 'ไม่มีงาน'}</p>
                 </>

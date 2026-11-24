@@ -2,51 +2,66 @@
 /* ---- from legacy/login.css ---- */
 /* Tokens duplicated on purpose, like supervisor.css: each page stands alone. */
 .s-auth {
-  --ink: #14181B;
-  --ground: #EDF0EE;
-  --quiet: #3F4945;
-  --red: #D6261E;
-  --yellow: #F5B800;
+  --ink: #1E2A32;
+  --ground: #F2F5F8;
+  --surface: #FFFFFF;
+  --line: #D5DCE3;
+  --line-strong: #7A8794;
+  --brand: #1D5C94;
+  --brand-press: #164A78;
+  --brand-soft: #E5EEF7;
+  --quiet: #4A5864;
+  --hover: #EAEFF4;
+  --red: #C62828;
+  --yellow: #F2B01E;
+  --green: #19753F;
+  --shadow: 0 1px 2px rgba(30,42,50,.06), 0 4px 16px rgba(30,42,50,.06);
+  --shadow-pop: 0 8px 28px rgba(30,42,50,.16);
   --kanit: 'Kanit', 'Noto Sans Thai', sans-serif;
   color-scheme: light;
 }
 
 .s-auth * { box-sizing: border-box; }
-.s-auth { scrollbar-color: var(--ink) var(--ground); }
+.s-auth { scrollbar-color: var(--line-strong) var(--ground); }
 .s-auth {
   margin: 0; min-height: 100vh; background: var(--ground); color: var(--ink);
-  font: 500 1rem/1.4 'Noto Sans Thai', system-ui, sans-serif; caret-color: var(--ink);
+  font: 500 1rem/1.4 'Noto Sans Thai', system-ui, sans-serif; caret-color: var(--brand);
   -webkit-tap-highlight-color: transparent;
 }
 .s-auth ::selection { background: var(--yellow); color: var(--ink); }
 .s-auth h1, .s-auth p { margin: 0; }
 .s-auth button, .s-auth input { font: inherit; color: inherit; }
-.s-auth :focus-visible { outline: 4px solid var(--ink); outline-offset: 3px; }
+.s-auth :focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
 
 /* three steps: title 2.25rem / brand 1.25rem / detail 1rem */
 .s-auth .wrap {
   max-width: 26rem; margin: 0 auto;
   padding: max(2rem, env(safe-area-inset-top)) 1rem calc(2rem + env(safe-area-inset-bottom));
 }
-.s-auth .brand { font: 700 1.25rem var(--kanit); }
+.s-auth .brand { font: 700 1.25rem var(--kanit); color: var(--brand); }
 .s-auth h1 { margin-top: 2rem; font: 700 2.25rem/1.1 var(--kanit); }
 .s-auth .lead { margin-top: .5rem; color: var(--quiet); }
 
-.s-auth form { margin-top: 1.75rem; padding: 1.25rem; background: #fff; border: 2px solid var(--ink); border-radius: 14px; }
+.s-auth form { margin-top: 1.75rem; padding: 1.25rem; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
 .s-auth .field + .field { margin-top: 1rem; }
 .s-auth label { display: block; margin-bottom: .375rem; font: 700 1rem var(--kanit); }
 .s-auth input {
   width: 100%; min-height: 3.5rem; padding: 0 1rem;
-  background: #fff; border: 2px solid var(--ink); border-radius: 12px;
+  background: var(--surface); border: 1.5px solid var(--line-strong); border-radius: 12px;
+  transition: border-color .15s, background-color .15s;
 }
-.s-auth form[data-err] input:focus { border-width: 4px; padding: 0 calc(1rem - 2px); }
+.s-auth input:hover { background: var(--hover); }
+.s-auth input:focus { background: var(--surface); border-color: var(--brand); }
+.s-auth form[data-err] input:focus { border-width: 3px; padding: 0 calc(1rem - 1.5px); }
 
 .s-auth .err { min-height: 1.4em; margin-top: 1rem; color: var(--red); font-weight: 700; }
 .s-auth .primary {
   display: flex; align-items: center; justify-content: center; width: 100%; min-height: 3.5rem; margin-top: .5rem;
-  background: var(--ink); color: #fff; border: 0; border-radius: 12px; font: 700 1.25rem var(--kanit); cursor: pointer;
+  background: var(--brand); color: #fff; border: 0; border-radius: 12px; font: 700 1.25rem var(--kanit); cursor: pointer;
+  transition: background-color .15s;
 }
-.s-auth .primary:active { background: var(--quiet); }
+.s-auth .primary:hover { background: var(--brand-press); }
+.s-auth .primary:active { background: var(--brand-press); }
 
 .s-auth .note { margin-top: 1.25rem; color: var(--quiet); }
 .s-auth .note b { color: var(--ink); font-family: var(--kanit); }
@@ -55,16 +70,17 @@
 
 /* ---- from legacy/profile.css ---- */
 /* extends login.css: same ground, fields and primary button */
-.s-auth .back { display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--ink); font: 700 1.25rem var(--kanit); text-underline-offset: .2em; }
+.s-auth .back { display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--brand); font: 700 1.25rem var(--kanit); text-underline-offset: .2em; }
 .s-auth .wrap h1 { margin-top: 1rem; }
 .s-auth .info { margin: 1.25rem 0 0; }
-.s-auth .info div { display: flex; justify-content: space-between; gap: 1rem; padding: .75rem 0; border-top: 2px solid var(--ground); }
+.s-auth .info div { display: flex; justify-content: space-between; gap: 1rem; padding: .75rem 0; border-top: 1px solid var(--line); }
 .s-auth .info dt { color: var(--quiet); }
 .s-auth .info dd { margin: 0; font: 700 1rem var(--kanit); }
 .s-auth .msg { min-height: 1.4em; margin-top: 1rem; font-weight: 700; }
 .s-auth .msg.bad { color: var(--red); }
 .s-auth .secondary {
   display: flex; align-items: center; justify-content: center; width: 100%; min-height: 3.5rem; margin-top: 1rem;
-  background: transparent; border: 2px solid var(--ink); border-radius: 12px; font: 700 1rem var(--kanit); cursor: pointer;
+  background: transparent; border: 1.5px solid var(--line-strong); border-radius: 12px; font: 700 1rem var(--kanit); cursor: pointer;
+  transition: background-color .15s;
 }
-
+.s-auth .secondary:hover { background: var(--hover); }

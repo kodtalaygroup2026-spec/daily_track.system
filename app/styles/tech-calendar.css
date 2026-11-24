@@ -11,14 +11,14 @@
 
 .s-tech .pri {
   display: flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; min-height: 3.5rem; margin-top: 1rem; padding: 0 1.25rem;
-  background: var(--ink); color: #fff; border: 2px solid var(--ink); border-radius: 12px; font: 700 1.0625rem var(--kanit); cursor: pointer;
+  background: var(--brand); color: #fff; border: 1.5px solid var(--brand); border-radius: 12px; font: 700 1.0625rem var(--kanit); cursor: pointer;
 }
-.s-tech .pri:active { background: #000; }
+.s-tech .pri:active { background: var(--brand-press); border-color: var(--brand-press); }
 .s-tech .tb {
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-width: 3.5rem; min-height: 3.5rem; padding: 0 1rem;
-  background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 12px; font: 600 1rem var(--kanit); cursor: pointer;
+  background: var(--surface); color: var(--ink); border: 1.5px solid var(--line-strong); border-radius: 12px; font: 600 1rem var(--kanit); cursor: pointer;
 }
-.s-tech .tb:active { background: #DADEDC; }
+.s-tech .tb:active { background: var(--brand-soft); }
 .s-tech .tb.wide { width: 100%; margin-top: .5rem; }
 
 /* month title and its buttons */
@@ -32,7 +32,7 @@
 .s-tech .mg { margin-top: .25rem; }
 .s-tech .dc {
   display: flex; flex-direction: column; align-items: center; gap: .125rem; min-width: 0; min-height: 5rem; padding: .25rem .125rem;
-  background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 10px;
+  background: var(--surface); color: var(--ink); border: 1.5px solid var(--line-strong); border-radius: 10px;
   font: 500 .9375rem/1.15 'Noto Sans Thai', system-ui, sans-serif; text-align: center; overflow-wrap: anywhere; cursor: pointer;
 }
 .s-tech .dc .dn { display: inline-flex; align-items: center; gap: .125rem; font: 700 1.0625rem var(--kanit); font-variant-numeric: tabular-nums; }
@@ -40,17 +40,18 @@
 .s-tech .dc .w { font-weight: 700; }
 /* day off: dashed and quiet; leave: solid with its own icon; work: solid, white. Each also has its own word and icon */
 .s-tech .dc[data-k="off"] { background: transparent; border-style: dashed; color: var(--quiet); }
-.s-tech .dc[data-k="leave"] { background: var(--ground); }
+.s-tech .dc[data-k="leave"] { background: var(--hover); }
 .s-tech .dc.out { color: var(--quiet); }
-.s-tech .dc.now { border-width: 4px; padding: .125rem 0; }
-.s-tech .dc[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+/* today keeps its thick frame on purpose (a shape cue), now in the brand colour */
+.s-tech .dc.now { border-width: 4px; border-color: var(--brand); padding: .125rem 0; }
+.s-tech .dc[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
 .s-tech .dc:focus-visible { outline-offset: 2px; }
-/* today's thick border is ink on ink once it is selected: an inset white ring keeps it recognisable */
+/* today's thick border is brand on brand once it is selected: an inset white ring keeps it recognisable */
 .s-tech .dc.now[aria-pressed="true"]:not(:focus-visible) { outline: 2px solid #fff; outline-offset: -6px; }
 
 .s-tech .dd {
   display: grid; gap: .5rem; justify-items: start; margin-top: 1rem; padding: 1rem 1.25rem;
-  background: #fff; border: 2px solid var(--ink); border-radius: var(--radius); font-size: 1.0625rem;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); font-size: 1.0625rem;
 }
 .s-tech .dd h2, .s-tech .lvs h2 { font: 700 1.5rem/1.25 var(--kanit); }
 .s-tech .dd p { overflow-wrap: anywhere; }
@@ -63,7 +64,7 @@
 .s-tech .lvs h2 { overflow-wrap: anywhere; }
 .s-tech .lvs ul { list-style: none; margin: .75rem 0 0; padding: 0; display: grid; gap: .75rem; }
 .s-tech .lvs > p { margin-top: .5rem; }
-.s-tech .lv { display: grid; gap: .5rem; justify-items: start; padding: 1rem 1.25rem; background: #fff; border: 2px solid var(--ink); border-radius: var(--radius); font-size: 1.0625rem; }
+.s-tech .lv { display: grid; gap: .5rem; justify-items: start; padding: 1rem 1.25rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); font-size: 1.0625rem; }
 .s-tech .lv p { overflow-wrap: anywhere; }
 .s-tech .lv .rg { font: 700 1.0625rem var(--kanit); }
 .s-tech .chip.ok { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
@@ -74,14 +75,24 @@
 .s-tech .fld { display: grid; gap: .375rem; }
 .s-tech .fld label { font: 700 1rem var(--kanit); }
 .s-tech .cf-body input {
-  width: 100%; min-height: 3.5rem; padding: 0 1rem; background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 12px;
+  width: 100%; min-height: 3.5rem; padding: 0 1rem; background: var(--surface); color: var(--ink); border: 1.5px solid var(--line-strong); border-radius: 12px;
   font: 500 1.0625rem 'Noto Sans Thai', system-ui, sans-serif;
 }
-.s-tech .cf-body input[aria-invalid="true"] { border-width: 4px; }
+/* invalid: a thick ink frame plus the message and icon, kept heavy on purpose */
+.s-tech .cf-body input[aria-invalid="true"] { border-width: 4px; border-color: var(--ink); }
 /* errors are ink with a warning icon: red is kept for task status */
 .s-tech .err { display: flex; align-items: flex-start; gap: .375rem; font-weight: 700; overflow-wrap: anywhere; }
 .s-tech .err .ic { margin-top: .125rem; width: 1.25rem; height: 1.25rem; }
 .s-tech .picks { display: flex; flex-wrap: wrap; gap: .5rem; }
-.s-tech .cf-body .picks button { width: auto; flex: none; background: #fff; font-weight: 600; }
-.s-tech .cf-body .picks button:active { background: #DADEDC; }
+.s-tech .cf-body .picks button { width: auto; flex: none; background: var(--surface); font-weight: 600; }
+.s-tech .cf-body .picks button:active { background: var(--brand-soft); }
 .s-tech .cf-body button[aria-disabled="true"] { cursor: progress; background: var(--quiet); color: #fff; }
+
+/* the branch of a working day: a small framed tag, so it reads as text and not as a status colour */
+.s-tech .dc .br { padding: 0 .125rem; border: 1.5px solid currentColor; border-radius: 6px; font: 700 .75rem/1.3 var(--kanit); letter-spacing: 0; white-space: nowrap; overflow-wrap: normal; }
+
+/* hover tint only where a real pointer exists, never on the selected state */
+@media (hover: hover) {
+  .s-tech .tb:hover, .s-tech .dc:not([aria-pressed="true"]):not([data-k="off"]):hover { background: var(--hover); }
+  .s-tech .pri:hover { background: var(--brand-press); border-color: var(--brand-press); }
+}

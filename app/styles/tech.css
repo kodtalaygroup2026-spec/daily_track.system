@@ -1,20 +1,29 @@
 /* Generated from the static site by scripts/scope-css.cjs, then maintained by hand. Scope: .s-tech */
 /* ---- from legacy/styles.css ---- */
 .s-tech {
-  --ink: #14181B;
-  --ground: #EDF0EE;
-  --quiet: #3F4945;
-  --red: #D6261E;
-  --yellow: #F5B800;
-  --green: #17713D;
-  --radius: 14px;
+  --ink: #1E2A32;
+  --ground: #F2F5F8;
+  --surface: #FFFFFF;
+  --line: #D5DCE3;
+  --line-strong: #7A8794;
+  --brand: #1D5C94;
+  --brand-press: #164A78;
+  --brand-soft: #E5EEF7;
+  --quiet: #4A5864;
+  --hover: #EAEFF4;
+  --red: #C62828;
+  --yellow: #F2B01E;
+  --green: #19753F;
+  --shadow: 0 1px 2px rgba(30, 42, 50, .06), 0 4px 16px rgba(30, 42, 50, .06);
+  --shadow-pop: 0 8px 28px rgba(30, 42, 50, .16);
+  --radius: 16px;
   --ease: cubic-bezier(.16, 1, .3, 1);
   --kanit: 'Kanit', 'Noto Sans Thai', sans-serif;
   color-scheme: light;
 }
 
 .s-tech * { box-sizing: border-box; }
-.s-tech { -webkit-text-size-adjust: 100%; scrollbar-color: var(--ink) var(--ground); }
+.s-tech { -webkit-text-size-adjust: 100%; scrollbar-color: var(--line-strong) var(--ground); }
 .s-tech {
   margin: 0;
   background: var(--ground);
@@ -28,7 +37,7 @@
 .s-tech h1, .s-tech h2, .s-tech p { margin: 0; }
 .s-tech .ic { width: 1.5rem; height: 1.5rem; flex: none; }
 
-.s-tech :focus-visible { outline: 4px solid var(--ink); outline-offset: 3px; }
+.s-tech :focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
 
 .s-tech .app {
   max-width: 30rem;
@@ -40,7 +49,7 @@
 .s-tech .brand { font: 700 1rem var(--kanit); letter-spacing: .01em; }
 .s-tech .who {
   display: inline-flex; align-items: center; gap: .25rem; min-height: 3.5rem; padding: 0 .5rem 0 .875rem;
-  color: var(--ink); text-decoration: none; border: 2px solid var(--ink); border-radius: 10px; font-weight: 700;
+  color: var(--ink); background: var(--surface); text-decoration: none; border: 1.5px solid var(--line-strong); border-radius: 12px; font-weight: 700;
 }
 .s-tech .who .ic { width: 1.125rem; height: 1.125rem; }
 
@@ -56,7 +65,7 @@
 .s-tech .date p { font: 500 1.5rem/1.2 var(--kanit); padding-bottom: .25rem; }
 
 .s-tech .prog { display: flex; gap: .375rem; margin-top: .875rem; }
-.s-tech .prog i { flex: 1; height: .875rem; border-radius: .4375rem; background: #fff; border: 2px solid var(--ink); transition: background-color .2s linear; }
+.s-tech .prog i { flex: 1; height: .875rem; border-radius: .4375rem; background: var(--surface); border: 1.5px solid var(--line-strong); transition: background-color .2s linear; }
 .s-tech .prog i[data-s="done"] { background: var(--green); }
 .s-tech .prog i[data-s="doing"] { background: var(--yellow); }
 .s-tech .count { margin-top: .5rem; font-size: 1.0625rem; color: var(--quiet); font-variant-numeric: tabular-nums; }
@@ -68,6 +77,7 @@
 .s-tech .box {
   position: relative; isolation: isolate; overflow: hidden;
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
   font-size: 1.0625rem;
 }
 .s-tech .box > * { position: relative; z-index: 1; }
@@ -94,7 +104,7 @@
 .s-tech .box[data-state="todo"] { background: var(--red); color: #fff; }
 .s-tech .box[data-state="todo"]::before {
   content: ""; position: absolute; inset: 6px; z-index: 1; pointer-events: none;
-  border: 2px dashed rgba(255, 255, 255, .8); border-radius: 9px;
+  border: 2px dashed rgba(255, 255, 255, .8); border-radius: 11px;
 }
 .s-tech .main {
   display: block; width: 100%; min-height: 5.75rem; padding: 1.1rem 1.25rem;
@@ -106,6 +116,7 @@
 .s-tech .box[data-state="done"] { background: var(--green); color: #fff; padding: 1rem 1.25rem; min-height: 5rem; }
 .s-tech .box[data-state="done"] h2 { text-decoration: line-through; text-decoration-thickness: .1em; }
 
+/* doing keeps its 4px ink frame and hazard band on purpose: the thick frame is a non-colour cue for the state */
 .s-tech .box[data-state="doing"] { background: var(--yellow); color: var(--ink); border: 4px solid var(--ink); }
 .s-tech .band {
   height: .875rem;
@@ -115,20 +126,22 @@
 .s-tech .doing-body .st { top: .875rem; right: 1rem; }
 
 .s-tech .tools { display: flex; align-items: center; gap: .75rem; margin-top: .875rem; }
+/* the photo button sits on the yellow coat, where the grey control line is too faint: ink there */
 .s-tech .photo {
   display: inline-flex; align-items: center; gap: .5rem;
   min-height: 3.5rem; padding: 0 1.1rem;
-  background: transparent; border: 2px solid var(--ink); border-radius: 12px;
+  background: transparent; border: 1.5px solid var(--line-strong); border-radius: 12px;
   font: 600 1rem var(--kanit); cursor: pointer;
 }
-.s-tech .photo:active { background: rgba(20, 24, 27, .12); }
+.s-tech .box[data-state="doing"] .photo { border-color: var(--ink); }
+.s-tech .photo:active { background: rgba(30, 42, 50, .12); }
 .s-tech .cue { display: flex; align-items: center; gap: .5rem; margin-top: .5rem; font: 700 1rem var(--kanit); }
 .s-tech .photo.need { display: flex; width: 100%; min-height: 4rem; justify-content: center; border-style: dashed; }
 .s-tech .needtxt { margin-top: .5rem; font-weight: 700; }
 .s-tech .box[data-state="done"] .cue { margin-top: .25rem; }
 .s-tech #list[aria-busy="true"] { pointer-events: none; }
 /* a photo is a button that opens the viewer: the 3.5rem square is the button, the picture fills it */
-.s-tech .zoom { position: relative; flex: none; width: 3.5rem; height: 3.5rem; padding: 0; overflow: hidden; background: none; border: 2px solid var(--ink); border-radius: 10px; cursor: pointer; }
+.s-tech .zoom { position: relative; flex: none; width: 3.5rem; height: 3.5rem; padding: 0; overflow: hidden; background: none; border: 1.5px solid var(--ink); border-radius: 12px; cursor: pointer; }
 .s-tech .shot { display: block; width: 100%; height: 100%; object-fit: cover; }
 .s-tech .mag { position: absolute; right: 0; bottom: 0; display: grid; place-items: center; width: 1.375rem; height: 1.375rem; background: var(--ink); color: #fff; border-top-left-radius: 8px; }
 .s-tech .mag .ic { width: 1rem; height: 1rem; }
@@ -136,6 +149,8 @@
 .s-tech .pic { display: flex; align-items: center; gap: .625rem; }
 .s-tech .cap { font: 700 1rem/1.25 var(--kanit); font-variant-numeric: tabular-nums; }
 .s-tech .box[data-state="done"] .zoom { border-color: #fff; }
+/* brand blue is invisible on the red and green coats: use a white ring there */
+.s-tech .box[data-state="done"] :focus-visible, .s-tech .box[data-state="todo"] :focus-visible { outline-color: #fff; }
 
 /* swipe track */
 /* --x is the thumb's travel. Registered as a length so it can be animated itself: the thumb and the green fill are both
@@ -168,7 +183,7 @@
 .s-tech .thumb.nudge { animation: nudge .6s var(--ease); }
 @keyframes nudge { 40% { transform: translateX(1.5rem); } }
 
-.s-tech .alldone { background: var(--green); color: #fff; border-radius: var(--radius); padding: 1.1rem 1.25rem; }
+.s-tech .alldone { background: var(--green); color: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.1rem 1.25rem; }
 .s-tech .alldone h2 { font: 700 1.5rem/1.25 var(--kanit); }
 .s-tech .empty { padding: 2rem .25rem; }
 .s-tech .empty h2 { font: 700 1.5rem/1.25 var(--kanit); }
@@ -176,14 +191,15 @@
 
 .s-tech .retry {
   margin-top: 1rem; min-height: 3.5rem; padding: 0 1.5rem;
-  background: var(--ink); color: #fff; border: 0; border-radius: 12px; font: 700 1.0625rem var(--kanit); cursor: pointer;
+  background: var(--brand); color: #fff; border: 0; border-radius: 12px; font: 700 1.0625rem var(--kanit); cursor: pointer;
 }
+.s-tech .retry:active { background: var(--brand-press); }
 
 /* routine and cover chips: ink on every coat, so they never borrow a status colour */
 .s-tech .chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
 .s-tech .chip {
   display: inline-flex; align-items: center; gap: .375rem; min-height: 2rem; padding: 0 .75rem;
-  border: 2px solid currentColor; border-radius: 1rem; font: 600 1rem var(--kanit);
+  border: 1.5px solid currentColor; border-radius: 1rem; font: 600 1rem var(--kanit);
 }
 .s-tech .chip .ic { width: 1.125rem; height: 1.125rem; }
 .s-tech .chip.cover { min-height: 2.5rem; background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
@@ -197,17 +213,18 @@
 .s-tech .items-h { font: 700 1rem var(--kanit); }
 .s-tech .items ul { list-style: none; margin: .25rem 0 0; padding: 0; display: grid; gap: .5rem; }
 .s-tech .row { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 3.5rem; padding: .5rem 0; text-align: left; }
-.s-tech button.row { padding: .5rem .75rem; background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 12px; cursor: pointer; }
-.s-tech button.row:active { background: #DADEDC; }
+.s-tech button.row { padding: .5rem .75rem; background: var(--surface); color: var(--ink); border: 1.5px solid var(--line-strong); border-radius: 12px; cursor: pointer; }
+.s-tech button.row:active { background: var(--hover); }
 .s-tech .cb { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border: 3px solid currentColor; border-radius: 8px; }
 .s-tech .row.on .cb { background: currentColor; }
 .s-tech .cb .ic { width: 1.25rem; height: 1.25rem; color: var(--tick); }
 .s-tech .it { flex: 1; overflow-wrap: anywhere; }
 .s-tech .row.on .it { text-decoration: line-through; }
 .s-tech .sw { flex: none; font: 700 1rem var(--kanit); }
+/* dashed = locked / not yet; ink so it still reads on the yellow coat */
 .s-tech .gate {
   display: flex; align-items: center; justify-content: center; min-height: 4rem; margin-top: .875rem; padding: .5rem 1rem;
-  border: 3px dashed var(--ink); border-radius: 2rem; text-align: center; color: var(--quiet); font: 700 1.0625rem var(--kanit);
+  border: 3px dashed var(--ink); border-radius: 2rem; text-align: center; color: var(--ink); font: 700 1.0625rem var(--kanit);
 }
 
 
@@ -216,14 +233,14 @@
   max-width: 28rem; margin: 0 auto; z-index: 10;
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   min-height: 4rem; padding: .5rem .5rem .5rem 1.1rem;
-  background: var(--ink); color: #fff; border-radius: var(--radius); font-size: 1.0625rem;
+  background: var(--ink); color: #fff; border-radius: var(--radius); box-shadow: var(--shadow-pop); font-size: 1.0625rem;
 }
 .s-tech .net[hidden], .s-tech .hint[hidden] { display: none; }
 .s-tech .toast { visibility: hidden; opacity: 0; transition: opacity .15s linear; }
 .s-tech .toast.show { visibility: visible; opacity: 1; }
 .s-tech .toast button {
   min-height: 3.5rem; min-width: 6rem; padding: 0 1.25rem;
-  background: var(--yellow); color: var(--ink); border: 0; border-radius: 10px;
+  background: var(--yellow); color: var(--ink); border: 0; border-radius: 12px;
   font: 700 1rem var(--kanit); cursor: pointer;
 }
 .s-tech .toast :focus-visible { outline-color: #fff; }
@@ -236,17 +253,23 @@
 /* ---- confirm before finishing: a native modal dialog ---- */
 .s-tech dialog.confirm {
   width: calc(100% - 2rem); max-width: 26rem; padding: 0;
-  background: #fff; color: var(--ink); border: 4px solid var(--ink); border-radius: var(--radius);
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-pop);
 }
-.s-tech dialog.confirm::backdrop { background: rgba(20, 24, 27, .7); }
+.s-tech dialog.confirm::backdrop { background: rgba(30, 42, 50, .55); }
 .s-tech .cf-body { display: grid; gap: .75rem; padding: 1.25rem; font-size: 1.0625rem; }
 .s-tech .cf-body h2 { font: 700 1.5rem/1.25 var(--kanit); }
 .s-tech .cf-task { font-weight: 700; overflow-wrap: anywhere; }
 .s-tech .cf-body button {
   display: flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; min-height: 3.5rem; padding: 0 1.1rem;
-  border: 2px solid var(--ink); border-radius: 12px; font: 700 1.0625rem var(--kanit); cursor: pointer;
+  border: 1.5px solid var(--line-strong); border-radius: 12px; font: 700 1.0625rem var(--kanit); cursor: pointer;
 }
-.s-tech .cf-body .go { margin-top: .5rem; background: var(--ink); color: #fff; }
-.s-tech .cf-body .go:active { background: #000; }
+.s-tech .cf-body .go { margin-top: .5rem; background: var(--brand); border-color: var(--brand); color: #fff; }
+.s-tech .cf-body .go:not([aria-disabled="true"]):active { background: var(--brand-press); }
 .s-tech .cf-body .no { background: transparent; }
-.s-tech .cf-body .no:active { background: rgba(20, 24, 27, .12); }
+.s-tech .cf-body .no:not([aria-disabled="true"]):active { background: var(--hover); }
+
+/* hover tint only where a real pointer exists, never on the selected state */
+@media (hover: hover) {
+  .s-tech .who:hover, .s-tech .photo:hover, .s-tech button.row:hover, .s-tech .cf-body .no:not([aria-disabled="true"]):hover { background: var(--hover); }
+  .s-tech .retry:hover, .s-tech .cf-body .go:not([aria-disabled="true"]):hover { background: var(--brand-press); }
+}

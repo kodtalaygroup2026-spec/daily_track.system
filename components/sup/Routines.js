@@ -6,6 +6,7 @@ import DateField from '@/components/DateField';
 import { MAX_DAY, MIN_DAY, th, toDate, today } from '@/lib/dates';
 import { BRANCHES, branchLabel } from '@/lib/branches';
 import { deleteTemplate, errText, getRoster, listTemplates, saveTemplate } from '@/lib/api';
+import { techBranches } from '@/lib/roster';
 import Shell from './Shell';
 import ItemsEditor from './ItemsEditor';
 import { Icon } from './ui';
@@ -82,7 +83,8 @@ function Field({ id, label, err, wide, after, children }) {
   );
 }
 
-const crewOf = (techs, branch) => techs.filter((x) => x.active && x.branch === branch);
+// a technician who works at the branch on any weekday, or has it as the home branch
+const crewOf = (techs, branch) => techs.filter((x) => x.active && techBranches(x).includes(branch));
 
 // t = the routine being edited, or null to create one
 function RoutineForm({ t, techs, branch, onClose, onSaved, toast }) {
@@ -95,7 +97,7 @@ function RoutineForm({ t, techs, branch, onClose, onSaved, toast }) {
   const [miss, setMiss] = useState(null); // { k }: the field to focus after a failed submit (a new object each time)
   const clear = (...ks) => setErrs((e) => (ks.some((k) => e[k]) ? { ...e, ...Object.fromEntries(ks.map((k) => [k, undefined])) } : e));
   const set = (k, ek = k) => (val) => { setV((s) => ({ ...s, [k]: val })); clear(ek); };
-  // a technician belongs to one branch: another branch clears a technician who is not in it
+  // another branch clears an owner who never works there
   const setBranch = (b) => { setV((s) => ({ ...s, branch: b, ownerId: crewOf(techs, b).some((x) => x.id === s.ownerId) ? s.ownerId : '' })); clear('branch', 'owner'); };
 
   useEffect(() => {
@@ -132,7 +134,7 @@ function RoutineForm({ t, techs, branch, onClose, onSaved, toast }) {
   }
 
   const crew = crewOf(techs, v.branch);
-  const ownerOpts = [{ value: '', label: !v.branch ? 'เลือกสาขาก่อน' : crew.length ? 'เลือกช่างประจำ' : 'ไม่มีช่างในสาขานี้' }].concat(crew.map((x) => ({ value: x.id, label: x.name })));
+  const ownerOpts = [{ value: '', label: !v.branch ? 'เลือกสาขาก่อน' : crew.length ? 'เลือกช่างประจำ' : 'ไม่มีช่างในสาขานี้' }].concat(crew.map((x) => ({ value: x.id, label: x.name + (x.branch && x.branch !== v.branch ? ` · สาขาหลัก ${branchLabel(x.branch)}` : '') })));
   const inv = (k, id) => ({ invalid: !!errs[k], describedBy: errs[k] ? `e-${id}` : undefined });
 
   return (
@@ -146,8 +148,9 @@ function RoutineForm({ t, techs, branch, onClose, onSaved, toast }) {
               ))}
             </div>
           )}>
-            <input type="text" id="r-title" ref={refs.title} value={v.title} onChange={(e) => set('title')(e.target.value)} autoComplete="off"
+            <input type="text" id="r-title" ref={refs.title} value={v.title} onChange={(e) => set('title')(e.target.value)} maxLength={60} autoComplete="off"
               aria-invalid={errs.title ? 'true' : undefined} aria-describedby={inv('title', 'r-title').describedBy} />
+            <p className="hint">ไม่เกิน 60 ตัวอักษร</p>
           </Field>
           <Field id="r-branch" label="สาขา" err={errs.branch}>
             <Dropdown id="r-branch" ref={refs.branch} label="สาขา" value={v.branch} onChange={setBranch}
@@ -172,8 +175,9 @@ function RoutineForm({ t, techs, branch, onClose, onSaved, toast }) {
             </Field>
           )}
           <Field id="r-place" label="สถานที่" err={errs.place} wide>
-            <input type="text" id="r-place" ref={refs.place} value={v.place} onChange={(e) => set('place')(e.target.value)} autoComplete="off"
+            <input type="text" id="r-place" ref={refs.place} value={v.place} onChange={(e) => set('place')(e.target.value)} maxLength={40} autoComplete="off"
               aria-invalid={errs.place ? 'true' : undefined} aria-describedby={inv('place', 'r-place').describedBy} />
+            <p className="hint">ไม่เกิน 40 ตัวอักษร</p>
           </Field>
           <div className="field full">
             <span className="lab">งานย่อย</span>

@@ -1,9 +1,12 @@
 'use client';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import Link from 'next/link';
-import { th, toDate } from '@/lib/dates';
+import { th, toDate, today } from '@/lib/dates';
 import { branchLabel } from '@/lib/branches';
+import { myBranch, myReports } from '@/lib/api';
 import '@/app/styles/tech-calendar.css';
+import '@/app/styles/tech-report.css';
+import '@/app/styles/tech-branch.css';
 import { createDay } from './day';
 import PhotoViewer from '@/components/PhotoViewer';
 import TaskBox, { Icon, Sprite } from './TaskBox';
@@ -12,11 +15,30 @@ export default function TechDay({ user }) {
   const [, redraw] = useReducer((n) => n + 1, 0);
   const ref = useRef(null);
   const [view, setView] = useState(null); // { id, kind }: the photo open in the viewer
+  const [sent, setSent] = useState(null); // reports sent today; null = not known (the count stays hidden, the button stays)
+  const [at, setAt] = useState(null); // { day, branch }: where the technician works on that day; null = not known, the home branch shows
   if (!ref.current) ref.current = createDay(redraw);
   const d = ref.current;
 
   useEffect(() => d.start(), [d]);
   useEffect(() => { d.afterCommit(); });
+  useEffect(() => {
+    let n = 0;
+    const get = () => { const k = ++n; myReports(today()).then((r) => k === n && setSent(r.length), () => k === n && setSent(null)); };
+    const seen = () => { if (!document.hidden) get(); };
+    get();
+    document.addEventListener('visibilitychange', seen);
+    return () => { n++; document.removeEventListener('visibilitychange', seen); };
+  }, []);
+  // the branch of the day on screen; a failed read keeps what is known, and an answer for another day is never shown (see `here`)
+  useEffect(() => {
+    let n = 0;
+    const get = () => { const k = ++n, day = d.day; myBranch(day).then((b) => k === n && setAt({ day, branch: typeof b === 'string' ? b : '' }), () => {}); };
+    const seen = () => { if (!document.hidden) get(); };
+    get();
+    document.addEventListener('visibilitychange', seen);
+    return () => { n++; document.removeEventListener('visibilitychange', seen); };
+  }, [d.day, d]);
 
   const { tasks, toast } = d;
   const vt = view && tasks.find((t) => t.id === view.id);
@@ -26,6 +48,8 @@ export default function TechDay({ user }) {
   const todo = tasks.some((t) => t.status === 'todo');
   const day = toDate(d.day);
   const offline = !navigator.onLine;
+  const here = (at && at.day === d.day && at.branch) || user.branch; // the branch of the day on screen
+  const away = here && user.branch && here !== user.branch; // sent to a branch other than the home one
   const net = d.busy ? 'กำลังบันทึก รอสักครู่…' : offline ? 'ไม่มีสัญญาณ ต้องต่อเน็ตก่อนจึงจะบันทึกได้'
     : d.error && d.loaded ? 'โหลดข้อมูลใหม่ไม่ได้ กำลังแสดงข้อมูลที่โหลดไว้ล่าสุด' : '';
 
@@ -34,7 +58,7 @@ export default function TechDay({ user }) {
       <Sprite />
       <div className="app">
         <header className="bar">
-          <span className="brand">{user.branch ? `Daily Track · ${branchLabel(user.branch)}` : 'Daily Track'}</span>
+          <span className="brand">{here ? `Daily Track · ${branchLabel(here)}` : 'Daily Track'}</span>
           <span className="nav">
             <Link className="who cal-link" href="/calendar" title="ปฏิทินและขอลา">
               <svg className="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6.5h16V20H4zM4 11h16M8.5 3.5v5M15.5 3.5v5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>ปฏิทิน
@@ -47,6 +71,13 @@ export default function TechDay({ user }) {
           {offline && <Icon n="offline" />}
           <span id="netText">{net}</span>
         </p>
+
+        {away && (
+          <p className="tb-at">
+            <svg className="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11zM12 7.5v5M9.5 10h5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <span>{`${d.day === today() ? 'วันนี้' : th(day, { weekday: 'long' })}คุณอยู่สาขา ${branchLabel(here)}`}<small>{`สาขาหลักของคุณคือ ${branchLabel(user.branch)}`}</small></span>
+          </p>
+        )}
 
         <section className="day" aria-label="สรุปวันนี้">
           <div className="date">
@@ -84,6 +115,13 @@ export default function TechDay({ user }) {
             )}
           </ul>
         )}
+
+        <section className="rep-entry" aria-label="รายงานงานที่ทำ">
+          <Link className="pri" href="/report">
+            <svg className="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 4.5h8v3H8zM6 6H4.5v14.5h15V6H18M8 13l3 3 5-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>รายงานงานที่ทำ
+          </Link>
+          {sent !== null && <p className="quiet">{`วันนี้ส่งแล้ว ${sent} รายการ`}</p>}
+        </section>
       </div>
 
       {vt && <PhotoViewer title={vt.title} subtitle={`${vt.place} · ${vt.time}`} index={view.kind === 'after' ? 1 : 0} onClose={() => setView(null)}

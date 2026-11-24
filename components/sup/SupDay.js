@@ -6,7 +6,7 @@ import { assignCover, createTask, errText, saveTemplate, supDay, updateTask } fr
 import { BRANCHES, branchLabel } from '@/lib/branches';
 import { MAX_DAY, MIN_DAY, addDays, dayNum, isoOf, mins, nowMins, th, toDate, today } from '@/lib/dates';
 import { PLACES } from '@/lib/presets';
-import { needsCover } from '@/lib/roster';
+import { branchOn, needsCover } from '@/lib/roster';
 import Drawer from './Drawer';
 import Lightbox from './Lightbox';
 import Shell from './Shell';
@@ -20,7 +20,12 @@ const dayTitle = (iso) => th(toDate(iso), { weekday: 'long' }) + ' ' + th(toDate
 // "9–11 พ.ย. 2569"; across months "28 ต.ค. – 3 พ.ย. 2569"
 const rangeTitle = (a, b) => new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { day: 'numeric', month: 'short', year: 'numeric' }).formatRange(toDate(a), toDate(b));
 const BRANCH_OPTIONS = [{ value: '', label: 'ทุกสาขา' }, ...BRANCHES];
-const inBranch = (p, branch) => !branch || !p.branch || p.branch === branch; // a technician with no branch shows under every branch
+// a technician fits a branch when they are there on at least one of the days a..b (one day: a = b); with no branch set they fit every branch
+const inBranch = (p, branch, a, b) => {
+  if (!branch) return true;
+  for (let d = a; d <= b; d = addDays(d, 1)) { const x = branchOn(p, d); if (!x || x === branch) return true; }
+  return false;
+};
 const validDay = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s) && s >= MIN_DAY && s <= MAX_DAY && isoOf(toDate(s)) === s;
 
 // date = first shown day, to = last shown day ('' = just the one day)
@@ -137,7 +142,7 @@ export default function SupDay({ user }) {
   })();
   const selTask = data.tasks.find((x) => x.id === ui.sel);
   const lbTask = lb && data.tasks.find((x) => x.id === lb.id);
-  const techOptions = [{ value: '', label: 'ช่างทุกคน' }, ...techs.filter((p) => inBranch(p, ui.branch)).map((p) => ({ value: p.id, label: p.name }))];
+  const techOptions = [{ value: '', label: 'ช่างทุกคน' }, ...techs.filter((p) => inBranch(p, ui.branch, date, to)).map((p) => ({ value: p.id, label: p.name }))];
   const techName = (id) => (techs.find((p) => p.id === id) || { name: '' }).name;
 
   /* ---- actions ---- */
@@ -299,7 +304,7 @@ export default function SupDay({ user }) {
             <div className="sel">
               <span>สาขา</span>
               <Dropdown id="branch" label="สาขา" value={ui.branch}
-                onChange={(v) => patch({ branch: v, tech: ui.tech && !inBranch(techs.find((p) => p.id === ui.tech) || {}, v) ? '' : ui.tech })} options={BRANCH_OPTIONS} />
+                onChange={(v) => patch({ branch: v, tech: ui.tech && !inBranch(techs.find((p) => p.id === ui.tech) || {}, v, date, to) ? '' : ui.tech })} options={BRANCH_OPTIONS} />
             </div>
             <div className="sel">
               <span>ช่าง</span>

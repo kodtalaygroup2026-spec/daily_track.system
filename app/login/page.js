@@ -59,7 +59,9 @@ export default function Page() {
           </div>
           <p className="err" id="err" role="alert">{err}</p>
           <button type="submit" className="primary" aria-disabled={busy}>{busy ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}</button>
-        </form>      </main>
+        </form>
+        <p className="note">ลืมรหัสผ่านหรือเข้าไม่ได้ ติดต่อ <b>หัวหน้างาน</b> เพื่อรีเซ็ตรหัสให้</p>
+      </main>
     </div>
   );
 }
